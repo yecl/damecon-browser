@@ -1,0 +1,158 @@
+name: Build All Platforms
+
+on:
+  push:
+    branches: [electron25]
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+
+    strategy:
+      matrix:
+        arch: [x64, arm64]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Build packages
+        run: yarn build
+
+      - name: Build kccacheproxy minimum-cache
+        working-directory: packages/kccacheproxy
+        run: |
+          npm install
+          mkdir -p cache_template
+          cd cache_template && node ../src/proxy/preload && cd ..
+          mkdir -p out/KCCacheProxy
+          cp -r cache_template/* out/KCCacheProxy/
+          cp -r out/KCCacheProxy/cache/ minimum-cache/
+          zip -r minimum-cache.zip minimum-cache/
+          cp minimum-cache.zip ../minimum-cache.zip
+
+      - name: Make macOS distributables
+        working-directory: packages/shell
+        run: npx electron-forge make --arch=${{ matrix.arch }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: damecon-macos-${{ matrix.arch }}
+          path: |
+            packages/shell/out/make/**/*.dmg
+
+  build-windows:
+    runs-on: windows-latest
+
+    strategy:
+      matrix:
+        arch: [x64, arm64]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Build packages
+        run: yarn build
+
+      - name: Build kccacheproxy minimum-cache
+        working-directory: packages/kccacheproxy
+        run: |
+          npm install
+          New-Item -ItemType Directory -Force cache_template
+          Push-Location cache_template; node ../src/proxy/preload; Pop-Location
+          New-Item -ItemType Directory -Force out/KCCacheProxy
+          Copy-Item -Recurse cache_template/* out/KCCacheProxy/
+          Copy-Item -Recurse out/KCCacheProxy/cache/ minimum-cache/
+          Compress-Archive -Path minimum-cache/* -DestinationPath minimum-cache.zip
+          Copy-Item minimum-cache.zip ../minimum-cache.zip
+        shell: pwsh
+
+      - name: Make Windows distributables
+        working-directory: packages/shell
+        run: npx electron-forge make --arch=${{ matrix.arch }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: damecon-windows-${{ matrix.arch }}
+          path: |
+            packages/shell/out/make/**/*.exe
+            packages/shell/out/make/**/*.zip
+            packages/shell/out/make/**/*.nupkg
+
+  build-linux:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        arch: [x64]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg fakeroot rpm
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Build packages
+        run: yarn build
+
+      - name: Build kccacheproxy minimum-cache
+        working-directory: packages/kccacheproxy
+        run: |
+          npm install
+          mkdir -p cache_template
+          cd cache_template && node ../src/proxy/preload && cd ..
+          mkdir -p out/KCCacheProxy
+          cp -r cache_template/* out/KCCacheProxy/
+          cp -r out/KCCacheProxy/cache/ minimum-cache/
+          zip -r minimum-cache.zip minimum-cache/
+          cp minimum-cache.zip ../minimum-cache.zip
+
+      - name: Make Linux distributables
+        working-directory: packages/shell
+        run: npx electron-forge make --arch=${{ matrix.arch }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: damecon-linux-${{ matrix.arch }}
+          path: |
+            packages/shell/out/make/**/*.deb
+            packages/shell/out/make/**/*.rpm
+            packages/shell/out/make/**/*.zip

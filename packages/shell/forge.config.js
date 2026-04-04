@@ -21,11 +21,10 @@ module.exports = {
     {
       name: '@electron-forge/maker-squirrel',
       platforms: ['win32'],
-      config: (arch) => ({
-        remoteReleases: `https://tsunkit.net/damecon-browser/updates/win32/${arch}`,
+      config: {
         setupIcon: 'icon.ico',
         authors: 'TsunKit',
-      }),
+      },
     },
   ],
   plugins: [
