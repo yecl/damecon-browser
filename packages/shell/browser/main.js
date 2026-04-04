@@ -461,8 +461,18 @@ class Browser extends EventEmitter {
 
     const internal = mode === 'kccp-internal'
     const https = method === 'https-mitm'
+    const simpleModes = ['http-proxy', 'socks5-proxy']
 
-    if (this.isProxyEnabled && (internal || https)) {
+    if (this.isProxyEnabled && simpleModes.includes(mode)) {
+      const host = proxyCfg.client.host
+      const port = proxyCfg.client.port
+      // Chromium proxyRules format: socks5 needs scheme prefix, HTTP proxy uses host:port directly
+      const proxyRules = mode === 'socks5-proxy'
+        ? `socks5://${host}:${port}`
+        : `${host}:${port}`
+      kccp.logger.log(logSource, 'Applying simple proxy settings:', mode, proxyRules)
+      await this.session.setProxy({ mode: 'fixed_servers', proxyRules })
+    } else if (this.isProxyEnabled && (internal || https)) {
       let host, port
       if (internal) {
         const kccpConfig = await getKccpConfig(configStore)
@@ -560,7 +570,9 @@ class Browser extends EventEmitter {
     app.on('browser-window-blur', () => globalShortcut.unregisterAll())
 
     this.session.setCertificateVerifyProc((request, callback) => {
-      if (request.hostname.endsWith('.kancolle-server.com')) {
+      const proxyCfg = configStore.get('proxy')
+      const isKccpMode = proxyCfg.enable && !['http-proxy', 'socks5-proxy'].includes(proxyCfg.mode)
+      if (isKccpMode && request.hostname.endsWith('.kancolle-server.com')) {
         // Bypass certificate errors for KCCP HTTPS MITM connections
         kccp.logger.log(logSource, 'Bypassing certificate error for', request.hostname)
         return callback(0)
@@ -1119,7 +1131,7 @@ class Browser extends EventEmitter {
     this.session.webRequest.onBeforeSendHeaders({ urls: ['<all_urls>'] }, (details, callback) => {
       if (details.url.startsWith('ws')) return
       const proxyCfg = configStore.get('proxy')
-      if (!proxyCfg.enable || proxyCfg.mode.endsWith('-internal') || proxyCfg.method !== 'header') {
+      if (!proxyCfg.enable || proxyCfg.mode.endsWith('-internal') || proxyCfg.method !== 'header' || ['http-proxy', 'socks5-proxy'].includes(proxyCfg.mode)) {
         callback({ requestHeaders: details.requestHeaders })
         return
       }
@@ -1148,6 +1160,7 @@ class Browser extends EventEmitter {
         cfg.enable &&
         !cfg.mode.endsWith('-internal') &&
         cfg.method !== 'https-mitm' &&
+        !['http-proxy', 'socks5-proxy'].includes(cfg.mode) &&
         details.method === 'GET' &&
         !url.pathname.includes('/kcscontents/news')
       ) {

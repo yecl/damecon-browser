@@ -365,13 +365,15 @@
             <label for="proxymode" class="form-check-label">Mode</label>
             <select id="proxymode" class="col form-control" data-bind="options: configSchema.proxy.mode.options, value: config.proxy.mode"></select>
           </div>
+          <!-- ko if: !['http-proxy', 'socks5-proxy'].includes(config.proxy.mode()) -->
           <div class="form-check col">
             <label for="proxymethod" class="form-check-label">Method</label>
             <select id="proxymethod" class="col form-control" data-bind="options: configSchema.proxy.method.options, value: config.proxy.method"></select>
           </div>
+          <!-- /ko -->
         </div>
       </div>
-      <!-- ko if: config.proxy.mode().endsWith('-external') -->
+      <!-- ko if: config.proxy.mode().endsWith('-external') || ['http-proxy', 'socks5-proxy'].includes(config.proxy.mode()) -->
       <h5>External Proxy</h5>
       <div class="settings-group">
         <div class="form-row">

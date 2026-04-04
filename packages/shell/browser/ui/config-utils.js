@@ -109,7 +109,7 @@ const configSchema = {
     enable: { type: 'bool', default: false },
     mode: {
       type: 'option',
-      options: ['kccp-external', 'kccp-internal', 'all-external'],
+      options: ['kccp-external', 'kccp-internal', 'all-external', 'http-proxy', 'socks5-proxy'],
       default: 'kccp-external',
     },
     method: {
