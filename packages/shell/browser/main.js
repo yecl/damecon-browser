@@ -12,7 +12,7 @@ import {
   ipcMain,
   nativeTheme,
   dialog,
-  autoUpdater,
+
   webFrameMain,
   protocol,
 } from 'electron'
@@ -21,7 +21,6 @@ import { EventEmitter } from 'events'
 if (require('electron-squirrel-startup')) app.quit()
 app.setAppUserModelId('net.tsunkit.damecon')
 
-import { updateElectronApp, UpdateSourceType } from 'update-electron-app'
 
 // damecon config
 import ConfigStore from 'configstore'
@@ -253,18 +252,6 @@ if (isSquirrel) {
     })
   }
 
-  // auto update
-  if (cfg.app.update.auto) {
-    kccp.logger.log(logSource, 'Checking for updates.')
-    updateElectronApp({
-      updateSource: {
-        type: UpdateSourceType.StaticStorage,
-        baseUrl: `https://tsunkit.net/damecon-browser/updates/${process.platform}/${process.arch}`,
-      },
-      updateInterval: '6 hours',
-      logger: { log: (msg) => kccp.logger.log('update-electron-app', msg) },
-    })
-  }
 }
 
 const getParentWindowOfTab = (tab) => {

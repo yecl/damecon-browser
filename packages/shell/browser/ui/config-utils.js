@@ -8,7 +8,6 @@ if (typeof ipc !== 'undefined') {
 const configSchema = {
   app: {
     update: {
-      auto: { type: 'bool', default: true },
       removeOld: { type: 'bool', default: true },
     },
     data: {
