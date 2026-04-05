@@ -2,6 +2,7 @@ import { parentPort } from 'worker_threads'
 
 import KC3Updater from './kc3updater.js'
 import KCCPModUpdater from './kccpmodupdater'
+import { applyProxySettings } from './updater-utils.js'
 
 let isKc3Updating = false
 let isKccpModderUpdating = false
@@ -36,6 +37,9 @@ parentPort.on('message', async (msg) => {
       break
     case 'do-kccp-modder-update':
       await doUpdateKccpModder(msg.data.config)
+      break
+    case 'set-proxy':
+      applyProxySettings(msg.data.proxyUrl)
       break
     default:
       throw new Error(`Unknown message type ${msg.type}`)

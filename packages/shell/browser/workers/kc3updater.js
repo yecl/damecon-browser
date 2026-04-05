@@ -3,6 +3,8 @@ import fs from 'fs'
 const fsAsync = fs.promises
 import { Readable } from 'stream'
 import { finished } from 'stream/promises'
+import https from 'https'
+import http_node from 'http'
 import AdmZip from 'adm-zip'
 import git from 'isomorphic-git'
 import http from 'isomorphic-git/http/node'
@@ -12,7 +14,37 @@ import {
   onUpdateProgress,
   onUpdateCompleted,
   fetchWithProgress,
+  proxyFetch,
+  getProxyAgent,
 } from './updater-utils.js'
+
+// Wrap isomorphic-git http transport to support proxy
+const proxyHttp = {
+  async request({ url, method, headers, body }) {
+    const agent = getProxyAgent()
+    if (agent) {
+      const mod = url.startsWith('https') ? https : http_node
+      return new Promise((resolve, reject) => {
+        const req = mod.request(url, { method, headers, agent }, (res) => {
+          resolve({
+            url,
+            method,
+            statusCode: res.statusCode,
+            statusMessage: res.statusMessage,
+            headers: res.headers,
+            body: [res],
+          })
+        })
+        req.on('error', reject)
+        if (body) {
+          for (const chunk of body) req.write(chunk)
+        }
+        req.end()
+      })
+    }
+    return http.request({ url, method, headers, body })
+  },
+}
 
 let self
 
@@ -67,7 +99,7 @@ class KC3Updater {
       const pullProcess = self.newProcess('Pulling new commits')
       await git.fastForward({
         fs,
-        http,
+        http: proxyHttp,
         dir,
         ref: latestCommit.oid,
         onProgress: pullProcess.progress.bind(pullProcess),
@@ -80,7 +112,7 @@ class KC3Updater {
       const fetchProcess = self.newProcess('Fetching new commits')
       await git.fetch({
         fs,
-        http,
+        http: proxyHttp,
         dir,
         ref: latestCommit.oid,
         onProgress: fetchProcess.progress.bind(fetchProcess),
@@ -128,7 +160,7 @@ class KC3Updater {
       } else if (channel == 'release') {
         const updateCheckProcess = self.newProcess('Checking for updates')
         const releaseData = await (
-          await fetch(
+          await proxyFetch(
             'https://raw.githubusercontent.com/KC3Kai/KC3Kai/refs/heads/webstore/package.json',
           )
         ).json()
@@ -218,7 +250,7 @@ class KC3Updater {
           const kc3CloneProcess = self.newProcess('Cloning repo')
           await git.clone({
             fs,
-            http,
+            http: proxyHttp,
             dir,
             url: 'https://github.com/kc3kai/kc3kai',
             ref: channel,
@@ -241,7 +273,7 @@ class KC3Updater {
 
         // Get newest commit
         let latestCommits = await git.listServerRefs({
-          http,
+          http: proxyHttp,
           url: 'https://github.com/kc3kai/kc3kai',
           prefix: `refs/heads/${channel}`,
           cache,
@@ -294,7 +326,7 @@ class KC3Updater {
               const langCloneProcess = self.newProcess('Cloning translation repo')
               await git.clone({
                 fs,
-                http,
+                http: proxyHttp,
                 dir: langDir,
                 url: 'https://github.com/kc3kai/kc3-translations',
                 ref: latestLangCommit.oid,

@@ -482,6 +482,16 @@ class Browser extends EventEmitter {
       kccp.logger.log(logSource, 'Clearing proxy settings')
       await this.session.setProxy({ mode: 'system' })
     }
+
+    // Sync proxy settings to worker threads (for Node.js fetch)
+    if (this.updateWorker) {
+      let proxyUrl = null
+      if (this.isProxyEnabled && simpleModes.includes(mode)) {
+        const scheme = mode === 'socks5-proxy' ? 'socks5' : 'http'
+        proxyUrl = `${scheme}://${proxyCfg.client.host}:${proxyCfg.client.port}`
+      }
+      this.updateWorker.postMessage({ type: 'set-proxy', data: { proxyUrl } })
+    }
   }
 
   generatePac(host, port, mode) {
