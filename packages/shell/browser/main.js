@@ -1489,7 +1489,10 @@ class Browser extends EventEmitter {
 
   createInitialWindow() {
     //console.log('>> main.createInitialWindow()')
-    this.createTabbedWindow()
+    this.createTabbedWindow({
+      initialUrls: [settingsUrl],
+      hideAddressBarFor: [settingsUrl],
+    })
   }
 
   windowOpenHandler(webContents, details) {
