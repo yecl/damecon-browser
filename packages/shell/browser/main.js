@@ -93,8 +93,11 @@ kccp.logger.log(logSource, `${isSquirrel ? 'Running' : 'Not running'} via Squirr
 
 // ~\AppData\Roaming in windows, or ~/.config in linux.
 const appDataDir = app.getPath('userData')
+const homeDataLocation = path.join(homePath, app.name)
 
-// store config.json in the app folder when running packaged.
+// Read config.json from appDir first (inside .app/Contents) as a template,
+// then determine dataPath and use dataPath/config.json as the real config.
+// If the real config doesn't exist, copy from the template.
 const cfgOpts = {}
 if (app.commandLine.hasSwitch('config-path')) {
   let cfgPath = app.commandLine.getSwitchValue('config-path')
@@ -104,17 +107,58 @@ if (app.commandLine.hasSwitch('config-path')) {
   cfgOpts.configPath = cfgPath
 } else if (app.isPackaged) {
   cfgOpts.configPath = path.join(appDir, 'config.json')
-  console.log('Config path: ', hideHome(cfgOpts.configPath))
 } else {
   cfgOpts.globalConfigPath = true
   console.log('Using global config path.')
 }
-console.log('Using config path:', cfgOpts.configPath)
 
 const preexisting = fsSync.existsSync(path.join(appDir, 'userdata'))
 if (preexisting) console.log('Detected preexisting userdata at current app location.')
 
 updateConfigDefaults({ isSquirrel, preexisting })
+
+// Read template config from appDir to determine dataPath
+const templateStore = new ConfigStore('damecon-browser', {}, cfgOpts)
+populateConfigDefaults(templateStore.all, configSchema, () => {})
+const dataLocation = templateStore.get('app.data.location') || configSchema.app.data.location.default
+
+// Resolve dataPath
+let dataPath = appDir
+switch (dataLocation) {
+  case 'home':
+    dataPath = homeDataLocation
+    break
+  case 'appdata':
+    dataPath = appDataDir
+    break
+  case 'appdir':
+    if (process.platform === 'darwin' && appDir.match(/\.app[\\/]Contents$/i)) {
+      dataPath = path.join(path.dirname(path.dirname(appDir)), 'damecon-data')
+    }
+    break
+  case 'custom': {
+    const customPath = templateStore.get('app.data.customPath')
+    if (customPath && fsSync.existsSync(customPath)) dataPath = customPath
+    break
+  }
+}
+
+// Use dataPath/config.json as the real config location
+if (app.isPackaged) {
+  const realCfgPath = path.join(dataPath, 'config.json')
+  if (!fsSync.existsSync(realCfgPath)) {
+    // Copy template config to dataPath
+    const dir = path.dirname(realCfgPath)
+    if (!fsSync.existsSync(dir)) fsSync.mkdirSync(dir, { recursive: true })
+    const templatePath = path.join(appDir, 'config.json')
+    if (fsSync.existsSync(templatePath)) {
+      fsSync.copyFileSync(templatePath, realCfgPath)
+      kccp.logger.log(logSource, 'Copied config.json to', hideHome(realCfgPath))
+    }
+  }
+  cfgOpts.configPath = realCfgPath
+  console.log('Config path:', hideHome(cfgOpts.configPath))
+}
 
 const configStore = new ConfigStore('damecon-browser', {}, cfgOpts)
 
@@ -153,21 +197,6 @@ app.commandLine.appendSwitch('enable-experimental-web-platform-features')
 // Shorten 'Electron' so we can bypass Google's "Unsecure" browser block without losing version information
 app.userAgentFallback = app.userAgentFallback.replace(' Electron/', ' Elec/')
 console.log('User-Agent:', app.userAgentFallback)
-
-// determine where the userdata/extensions folders should be stored
-const homeDataLocation = path.join(homePath, app.name)
-const dataLocation = cfg.app.data.location
-let dataPath = appDir
-switch (dataLocation) {
-  case 'home':
-    dataPath = homeDataLocation
-    break
-  case 'appdata':
-    dataPath = appDataDir
-    break
-  case 'custom':
-    if (fsSync.existsSync(cfg.app.data.customPath)) dataPath = cfg.app.data.customPath
-}
 const userDataPath = path.join(dataPath, 'userdata')
 app.setPath('userData', userDataPath)
 
