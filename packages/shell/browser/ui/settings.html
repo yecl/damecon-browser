@@ -380,6 +380,11 @@
           <label for="proxyclientport" class="col-sm-3">Port</label>
           <input id="proxyclientport" type="number" class="col form-control" data-bind="value: config.proxy.client.port" placeholder="Enter port (e.g. 8081)">
         </div>
+        <div class="form-row mt-2">
+          <div class="col text-right">
+            <button type="button" class="btn btn-primary" data-bind="click: saveProxyConfig">Save</button>
+          </div>
+        </div>
       </div>
       <!-- /ko -->
       <!-- ko if: config.proxy.mode() === 'kccp-internal' -->

@@ -388,6 +388,11 @@ class Settings {
       target[key](value)
   }
 
+  async saveProxyConfig() {
+    await configStore.set('proxy.client.host', this.config.proxy.client.host())
+    await configStore.set('proxy.client.port', this.config.proxy.client.port())
+  }
+
   // updates the config from ko properties
   async saveConfig() {
     await configApply(this.config, {
