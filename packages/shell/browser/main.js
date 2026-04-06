@@ -913,6 +913,31 @@ class Browser extends EventEmitter {
           let initWin = this.windows.find((w) => w.window.id === meta.windowId)
           initWin.resolveReady()
           break
+        case 'fit-game-to-window': {
+          const fitWin = this.windows.find((w) => w.window.id === meta.windowId)
+          const fitTab = fitWin?.tabs.selected
+          if (fitTab) {
+            const viewBounds = fitTab.view.getBounds()
+            const viewW = viewBounds.width
+            const viewH = viewBounds.height
+            const scale = Math.min(viewW / 1200, viewH / 720)
+            // Only zoom when we're actually in the game view:
+            // kc3kai creates `.box-game .game-swf` iframe when the user
+            // starts the game. If that iframe doesn't exist, it's either
+            // a non-game page (settings/about/...) or the pre-play screen,
+            // and we must do nothing.
+            await fitTab.webContents.executeJavaScript(`
+              (function() {
+                const gameSwf = document.querySelector('.box-game .game-swf');
+                if (!gameSwf) return;
+                const wrap = document.querySelector('.box-wrap');
+                if (!wrap) return;
+                wrap.style.zoom = ${scale};
+              })()
+            `)
+          }
+          break
+        }
         case 'webui-zoom-changed':
           //kccp.logger.log(logSource, 'zoom changed', data)
           let zoomWin = this.windows.find((w) => w.window.id === meta.windowId)

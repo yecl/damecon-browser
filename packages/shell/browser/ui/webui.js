@@ -571,6 +571,9 @@ class WebUI {
   browserActionGoForward() {
     chrome.tabs.goForward()
   }
+  browserActionFitGame() {
+    this.sendToMain('fit-game-to-window')
+  }
   browserActionReload() {
     chrome.tabs.reload()
   }
