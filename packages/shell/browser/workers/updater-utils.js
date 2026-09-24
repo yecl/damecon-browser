@@ -2,8 +2,8 @@ import { parentPort } from 'worker_threads'
 import { Readable } from 'stream'
 import https from 'https'
 import http from 'http'
-import HttpsProxyAgent from 'https-proxy-agent'
-import SocksProxyAgent from 'socks-proxy-agent'
+import { HttpsProxyAgent } from 'https-proxy-agent'
+import { SocksProxyAgent } from 'socks-proxy-agent'
 
 let proxyUrl = null
 
