@@ -1,6 +1,6 @@
 # ![Damecon icon](./packages/shell/browser/ui/assets/icons/damecon_icon_48.png) damecon-browser
 
-A minimal, tabbed web browser for playing Kantai Collection, with integrated KC3Kai and KCCacheProxy support.
+A minimal, tabbed web browser for playing Kantai Collection, with integrated KC3Kai and HTTP/SOCKS5 proxy support.
 
 Built on [electron-browser-shell](https://github.com/samuelmaddock/electron-browser-shell).
 
@@ -79,11 +79,9 @@ You can select from three different update channels: `release`, `master`, and `d
 
 ### Proxy Configuration
 
-Damecon is designed to work seamlessly with KCCacheProxy. Extensions like ProxySwitchy are no longer necessary.
+Damecon can route all browser traffic (including KC3 updates) through an HTTP or SOCKS5 proxy.
 
-You can configure your KCCP host/port in the `Proxy` section of the settings page.
-
-The `Enabled` checkbox will enable/disable routing KanColle traffic through the proxy.
+Choose the mode and set the host/port in the `Proxy` section of the settings page, then press `Save`. The `Enabled` checkbox turns the proxy on or off.
 
 ## Features
 
@@ -92,10 +90,6 @@ The `Enabled` checkbox will enable/disable routing KanColle traffic through the 
 Configurable KC3Kai autostart/update options:
 
 ![preview image showing KC3Kai configuration options.](./screenshots/update.png)
-
-KCCacheProxy client options:
-
-![preview image showing KCCacheProxy client options.](./screenshots/proxy.png)
 
 Themes:
 
@@ -113,7 +107,7 @@ New Tab launch page:
 - [x] Support both release and in-development versions of KC3
 - [x] Configurable KC3 update schedule (daily/weekly/always/never)
 - [x] Auto-open KC3 start page (with developer tools) and strategy room
-- [x] KCCacheProxy full integration & proxy client support
+- [x] HTTP/SOCKS5 proxy support
 - [x] Color and light/dark theme support
 - [x] Manifest V3 extensions support
 - [x] Chrome Webstore extensions support

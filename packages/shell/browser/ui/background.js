@@ -33,31 +33,12 @@ const handleMessage = function (msg, sender, sendresponse) {
 
 const receiveFromRenderer = async function(msg) {
   switch (msg.type) {
-    // Ignore (multiwindow)
-    case 'kccp-log-update':
-    case 'kccp-status':
-    case 'kccp-log-recent':
-      console.log('Ignoring message from other webUI.', msg)
-      return
     // Passthrough to main
     case 'get-damecon-version':
     case 'get-damecon-info':
     case 'get-config':
     case 'get-config-item':
     case 'clear-cache':
-    case 'kccp-get-status':
-    case 'kccp-get-config':
-    case 'kccp-save-config':
-    case 'kccp-import-cache':
-    case 'kccp-reload-cache':
-    case 'kccp-verify-cache':
-    case 'kccp-add-mod':
-    case 'kccp-reload-mods':
-    case 'kccp-prepatch':
-    case 'kccp-extract-spritesheet':
-    case 'kccp-make-outlines':
-    case 'kccp-convert-poi':
-    case 'kccp-log-get-recent':
     case 'kc3-doupdate':
     case 'kc3-get-isupdating':
     case 'kc3-select-custom-location':

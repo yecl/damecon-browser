@@ -61,20 +61,6 @@ class WebUI {
       if (msg?.type) await this.receiveFromMain(msg)
       else alert('webui.js received invalid webui-message from main:\n' + JSON.stringify(msg))
     })
-    ipc.on('update', (e, message) => {
-      chrome.runtime.sendMessage({
-        type: 'kccp-log-update',
-        meta: { windowId: this.windowId(), allTabs: true },
-        data: message,
-      })
-    })
-    ipc.on('recent', (e, message) => {
-      chrome.runtime.sendMessage({
-        type: 'kccp-log-recent',
-        meta: { windowId: this.windowId(), allTabs: true },
-        data: message,
-      })
-    })
     // received a message from a tab
     // webui.js is no longer handling message passing
     //chrome.runtime.onMessage.addListener(this.handleMessage.bind(this))
@@ -279,18 +265,10 @@ class WebUI {
     if (msg.type.startsWith('webui-log')) return
     switch (msg.type) {
       case 'status-kc3-is-updating':
-      case 'status-kccp-modder-is-updating':
       case 'error-do-kc3-update':
-      case 'error-do-kccp-modder-update':
       case 'update-process-started':
       case 'update-process-progress':
       case 'update-process-completed':
-      case 'kccp-status':
-      case 'kccp-config-saved':
-      case 'kccp-config-saved':
-      case 'kccp-git-mod-installed':
-      case 'kccp-git-mod-updated':
-      case 'kccp-git-mod-progress':
         // (worker ->) main -> webui -> settings
         chrome.runtime.sendMessage(msg)
         break

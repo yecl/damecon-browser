@@ -1,27 +1,20 @@
 import path from 'path'
 import fsSync, { utimesSync } from 'fs'
-const https = require('https')
-const { Readable } = require('stream')
 import {
   app,
   session,
-  net,
   BrowserWindow,
   Notification,
   globalShortcut,
   ipcMain,
   nativeTheme,
   dialog,
-
   webFrameMain,
-  protocol,
-  shell,
 } from 'electron'
 import { EventEmitter } from 'events'
 
 if (require('electron-squirrel-startup')) app.quit()
 app.setAppUserModelId('net.tsunkit.damecon')
-
 
 // damecon config
 import ConfigStore from 'configstore'
@@ -45,29 +38,6 @@ import { isMatch } from 'matcher'
 import './workers/worker-shim'
 import updateWorker from 'worker-loader!./workers/updater-worker.js'
 
-// KCCP
-const kccp = require('../../kccacheproxy/src/proxy/proxy.js')
-const kccpCacher = require('../../kccacheproxy/src/proxy/cacher.js')
-const kccpCacheHandler = require('../../kccacheproxy/src/proxy/cacheHandler.js')
-const kccpModderUtils = require('../../kccacheproxy/src/proxy/mod/modderUtils.js')
-const kccpPatcher = require('../../kccacheproxy/src/proxy/mod/patcher.js')
-import {
-  getKccpStatus,
-  getKccpConfig,
-  setKccpConfig,
-  initKccp,
-  startStopKccp,
-  kccpCheckRestart,
-  getKccpCachePath,
-  getKccpModPath,
-  getKccpKcs2CachePath,
-  proxyRequest,
-  installKccpGitMod,
-  updateKccpGitMod,
-} from './kccp-integration.js'
-
-const logSource = 'damecon-browser'
-
 const homePath = app.getPath('home')
 const hideHome = function (filePath) {
   return filePath.replace(homePath, process.platform == 'win32' ? '%USERPROFILE%' : '~')
@@ -79,7 +49,7 @@ const shellDebug = process.env.SHELL_DEBUG
 // folder the app was launched from
 // for installed versions, this is the squirrel folder, not the folder containing resource.
 let appDir = app.getAppPath()
-kccp.logger.log(logSource, 'Base appPath:', hideHome(appDir))
+console.log('Base appPath:', hideHome(appDir))
 let isSquirrel = false
 //added case insentivity flag
 const appDirCheck =
@@ -90,7 +60,7 @@ if (!!appDirCheck) {
   appDir = appDirCheck.groups.base
   isSquirrel = !!appDirCheck.groups.squirrelpath
 }
-kccp.logger.log(logSource, `${isSquirrel ? 'Running' : 'Not running'} via Squirrel.`)
+console.log(`${isSquirrel ? 'Running' : 'Not running'} via Squirrel.`)
 
 // ~\AppData\Roaming in windows, or ~/.config in linux.
 const appDataDir = app.getPath('userData')
@@ -121,7 +91,8 @@ updateConfigDefaults({ isSquirrel, preexisting })
 // Read template config from appDir to determine dataPath
 const templateStore = new ConfigStore('damecon-browser', {}, cfgOpts)
 populateConfigDefaults(templateStore.all, configSchema, () => {})
-const dataLocation = templateStore.get('app.data.location') || configSchema.app.data.location.default
+const dataLocation =
+  templateStore.get('app.data.location') || configSchema.app.data.location.default
 
 // Resolve dataPath
 let dataPath = appDir
@@ -154,7 +125,7 @@ if (app.isPackaged) {
     const templatePath = path.join(appDir, 'config.json')
     if (fsSync.existsSync(templatePath)) {
       fsSync.copyFileSync(templatePath, realCfgPath)
-      kccp.logger.log(logSource, 'Copied config.json to', hideHome(realCfgPath))
+      console.log('Copied config.json to', hideHome(realCfgPath))
     }
   }
   cfgOpts.configPath = realCfgPath
@@ -164,9 +135,9 @@ if (app.isPackaged) {
 const configStore = new ConfigStore('damecon-browser', {}, cfgOpts)
 
 const cfg = configStore.all
-kccp.logger.log(logSource, 'Populating defaults for config')
+console.log('Populating defaults for config')
 const configModified = populateConfigDefaults(cfg, configSchema, (...input) =>
-  kccp.logger.log(logSource, ...input),
+  console.log(...input),
 )
 
 // config fixes
@@ -175,6 +146,12 @@ if (typeof cfg.proxy.client.enable !== 'undefined') {
   cfg.proxy.enable = cfg.proxy.client.enable
   delete cfg.proxy.client.enable
 }
+if (!configSchema.proxy.mode.options.includes(cfg.proxy.mode)) {
+  cfg.proxy.mode = configSchema.proxy.mode.default
+  cfg.proxy.enable = false
+}
+delete cfg.proxy.method
+delete cfg.proxy.client.httpsPort
 configStore.all = cfg // save with updated defaults
 
 if (!configStore.get('window.behavior.occlusion'))
@@ -229,7 +206,7 @@ const PATHS = {
   //KC3_EXTENSIONS: path.join(ROOT_DIR, 'ext_kc3kai'),
 }
 
-kccp.logger.log(logSource, `Is packaged: ${app.isPackaged}`)
+console.log(`Is packaged: ${app.isPackaged}`)
 console.log(`SHELL_ROOT_DIR: ${SHELL_ROOT_DIR}`)
 console.log(`ROOT_DIR: ${ROOT_DIR}`)
 console.log(`PATHS:`, PATHS)
@@ -263,7 +240,7 @@ const manifestExists = async (dirPath) => {
 if (isSquirrel) {
   // clear old versions
   if (configStore.get('app.update.removeOld')) {
-    kccp.logger.log(logSource, 'Removing previous versions.')
+    console.log('Removing previous versions.')
     const entries = fsSync.readdirSync(appDir)
     entries.forEach((entry) => {
       const match = entry.match(/^app-(?<version>\d+\.\d+\.\d+)$/)
@@ -273,15 +250,14 @@ if (isSquirrel) {
       const entryPath = path.join(appDir, entry)
       const info = fsSync.statSync(entryPath)
       if (info.isFile()) return
-      kccp.logger.log(logSource, 'Removing', entry)
+      console.log('Removing', entry)
       try {
         fsSync.rmdirSync(entryPath, { recursive: true })
       } catch (error) {
-        kccp.logger.log(logSource, `Couldn't remove old version ${version}:`, error)
+        console.log(`Couldn't remove old version ${version}:`, error)
       }
     })
   }
-
 }
 
 const getParentWindowOfTab = (tab) => {
@@ -405,11 +381,9 @@ function getMemory() {
 
 class Browser extends EventEmitter {
   windows = []
-  kccpMainWindow = null
   currentWindowId = null
   currentKc3ExtensionId = null
   kc3IsUpdating = false
-  kccpModderIsUpdating = false
   isProxyEnabled = false
   session = null
 
@@ -424,19 +398,6 @@ class Browser extends EventEmitter {
     this.ready = new Promise((resolve) => {
       this.resolveReady = resolve
     })
-
-    /*
-    protocol.registerSchemesAsPrivileged([
-      {
-        scheme: 'kancolle',
-        privileges: {
-          secure: true,
-          standard: true,
-          supportFetchAPI: true,
-          corsEnabled: true
-        }
-      }
-    ]);*/
 
     app.whenReady().then(this.init.bind(this))
 
@@ -474,42 +435,18 @@ class Browser extends EventEmitter {
     const proxyCfg = configStore.get('proxy')
     this.isProxyEnabled = proxyCfg.enable
     const mode = proxyCfg.mode
-    const method = proxyCfg.method
 
-    const internal = mode === 'kccp-internal'
-    const https = method === 'https-mitm'
     const simpleModes = ['http-proxy', 'socks5-proxy']
 
     if (this.isProxyEnabled && simpleModes.includes(mode)) {
       const host = proxyCfg.client.host
       const port = proxyCfg.client.port
       // Chromium proxyRules format: socks5 needs scheme prefix, HTTP proxy uses host:port directly
-      const proxyRules = mode === 'socks5-proxy'
-        ? `socks5://${host}:${port}`
-        : `${host}:${port}`
-      kccp.logger.log(logSource, 'Applying simple proxy settings:', mode, proxyRules)
+      const proxyRules = mode === 'socks5-proxy' ? `socks5://${host}:${port}` : `${host}:${port}`
+      console.log('Applying simple proxy settings:', mode, proxyRules)
       await this.session.setProxy({ mode: 'fixed_servers', proxyRules })
-    } else if (this.isProxyEnabled && (internal || https)) {
-      let host, port
-      if (internal) {
-        const kccpConfig = await getKccpConfig(configStore)
-        host = kccpConfig.config.hostname
-        port = kccpConfig.config.httpsPort
-      } else {
-        host = proxyCfg.client.host
-        port = method === 'https-mitm' ? proxyCfg.client.httpsPort : proxyCfg.client.port
-      }
-
-      kccp.logger.log(logSource, 'Applying proxy settings:', this.isProxyEnabled, mode, host, port)
-
-      const pac = this.generatePac(host, port, mode)
-      const pacData =
-        'data:application/x-ns-proxy-autoconfig;base64,' +
-        Buffer.from(pac, 'utf8').toString('base64')
-      const proxyConfig = { mode: 'pac_script', pacScript: pacData }
-      await this.session.setProxy(proxyConfig)
     } else {
-      kccp.logger.log(logSource, 'Clearing proxy settings')
+      console.log('Clearing proxy settings')
       await this.session.setProxy({ mode: 'system' })
     }
 
@@ -522,25 +459,6 @@ class Browser extends EventEmitter {
       }
       this.updateWorker.postMessage({ type: 'set-proxy', data: { proxyUrl } })
     }
-  }
-
-  generatePac(host, port, mode) {
-    if (mode.startsWith('all-')) {
-      return `function FindProxyForURL(url, host) {\n return "PROXY ${host}:${port}";\n }\n`
-    }
-
-    // server letters, will expand to '00g|01y|02k' etc
-    const servers = 'gyksmotlrsbtpbhpskish'
-    const serversExp = [...servers].map((c, i) => String(i).padStart(2, '0') + c).join('|')
-
-    const pac =
-      'function FindProxyForURL(url, host) {\n' +
-      `  if (new RegExp("w(${serversExp})\\.kancolle-server\\.com").test(host))\n` +
-      `    return "PROXY ${host}:${port}";\n` +
-      '  return "DIRECT";\n' +
-      '}\n'
-
-    return pac
   }
 
   getFocusedWindow() {
@@ -595,17 +513,6 @@ class Browser extends EventEmitter {
       globalShortcut.registerAll(['CmdOrCtrl+Shift+Tab'], () => this.prevTab(fTab().id))
     })
     app.on('browser-window-blur', () => globalShortcut.unregisterAll())
-
-    this.session.setCertificateVerifyProc((request, callback) => {
-      const proxyCfg = configStore.get('proxy')
-      const isKccpMode = proxyCfg.enable && !['http-proxy', 'socks5-proxy'].includes(proxyCfg.mode)
-      if (isKccpMode && request.hostname.endsWith('.kancolle-server.com')) {
-        // Bypass certificate errors for KCCP HTTPS MITM connections
-        kccp.logger.log(logSource, 'Bypassing certificate error for', request.hostname)
-        return callback(0)
-      }
-      return callback(-3)
-    })
 
     if ('registerPreloadScript' in this.session) {
       this.session.registerPreloadScript({
@@ -708,7 +615,7 @@ class Browser extends EventEmitter {
 
     // Wait for web store extensions to finish loading as they may change the
     // newtab URL.
-    kccp.logger.log(logSource, 'Initializing webstore system.')
+    console.log('Initializing webstore system.')
     await installChromeWebStore({
       session: this.session,
       async beforeInstall(details) {
@@ -735,20 +642,19 @@ class Browser extends EventEmitter {
 
     //if (!app.isPackaged) {
     if (fsSync.existsSync(PATHS.LOCAL_EXTENSIONS)) {
-      kccp.logger.log(logSource, 'Loading extensions')
+      console.log('Loading extensions')
       await loadAllExtensions(this.session, PATHS.LOCAL_EXTENSIONS, {
         allowUnpacked: true,
         filterRegex: /^(?!kc3kai).*(?:[/\\]src)?$/,
         filterCallback: (ext) => {
-          kccp.logger.log(logSource, `Checking extension ${ext.manifest.name}`)
+          console.log(`Checking extension ${ext.manifest.name}`)
           if (ext.manifest.name === 'uBlock Origin') {
             const version = ext.manifest.version.split('.').map((i) => parseInt(i))
             const v = [1, 47, 4]
             if ([0, 1].some((i) => version[i] > v[i])) {
               const notice = `${ext.manifest.name} versions above ${v.join('.')} may cause a severe memory leak and are currently unsupported.`
-              kccp.logger.error(logSource, notice)
-              kccp.logger.log(
-                logSource,
+              console.error(notice)
+              console.log(
                 `${ext.manifest.name} version ${ext.manifest.version} will not be loaded.`,
               )
               return false
@@ -759,18 +665,17 @@ class Browser extends EventEmitter {
       })
     }
 
-    kccp.logger.log(logSource, 'Starting extension workers.')
+    console.log('Starting extension workers.')
     await Promise.all(
       this.session.getAllExtensions().map(async (extension) => {
         const manifest = extension.manifest
         if (manifest.manifest_version === 3 && manifest?.background?.service_worker) {
-          kccp.logger.error(
-            logSource,
+          console.error(
             `Extension ${extension.name} is a Manifest V3 extension that uses service workers, which are not yet supported. Some functionality may be missing.`,
           )
           /*
           await this.session.serviceWorkers.startWorkerForScope(extension.url).catch((error) => {
-            kccp.logger.error(logSource, error)
+            console.error(error)
           })
           //*/
         }
@@ -781,7 +686,7 @@ class Browser extends EventEmitter {
     const bright = configStore.get('window.style.brightness') || 'system'
     nativeTheme.themeSource = bright
     nativeTheme.on('updated', (ev) => {
-      //kccp.logger.log(logSource, 'nativeTheme.updated', ev)
+      //console.log('nativeTheme.updated', ev)
     })
 
     // initial window creation
@@ -798,7 +703,6 @@ class Browser extends EventEmitter {
     // Messages from webui/settings
     ipcMain.handle('webui-message', async (ev, meta, data) => {
       let result
-      let kccpConfig, cachePath, source, target // reusables
       switch (meta.type) {
         case 'get-damecon-info':
           result = {
@@ -808,7 +712,6 @@ class Browser extends EventEmitter {
               app: appDir,
               appData: appDataDir,
             },
-            kccpStatus: getKccpStatus(),
           }
           break
         case 'get-damecon-version':
@@ -823,20 +726,7 @@ class Browser extends EventEmitter {
         case 'set-config-item':
           result = configStore.set(data.key, data.value)
           if (data.key.startsWith('proxy.')) {
-            if (
-              ((data.key == 'proxy.enable' &&
-                data.value == true &&
-                configStore.get('proxy.mode') == 'kccp-internal') ||
-                (data.key == 'proxy.mode' &&
-                  data.value == 'kccp-internal' &&
-                  configStore.get('proxy.enable') == true)) &&
-              (await getKccpConfig(configStore))?.config?.autoUpdateGitMods
-            ) {
-              await this.updateKccpMods()
-            } else {
-              await startStopKccp(configStore)
-              await this.applyProxy()
-            }
+            await this.applyProxy()
           } else if (data.key == 'kc3kai.update.channel') {
             if (kc3ExtensionId) this.session.removeExtension(kc3ExtensionId)
             await this.updateKc3IfScheduled()
@@ -864,25 +754,7 @@ class Browser extends EventEmitter {
           break
         case 'clear-cache':
           await this.session.clearCache()
-          if (
-            configStore.get('proxy.enable') &&
-            configStore.get('proxy.mode') === 'kccp-internal'
-          ) {
-            const kccpCfg = await getKccpConfig(configStore)
-            const cachePath = getKccpCachePath(kccpCfg.config)
-            const mainjsPath = path.join(cachePath, 'kcs2', 'js', 'main.js')
-            if (fsSync.existsSync(mainjsPath)) {
-              kccp.logger.log(logSource, 'Deleting main.js from internal KCCacheProxy cache.')
-              try {
-                fsSync.rmSync(mainjsPath)
-              } catch (error) {
-                kccp.logger.error(logSource, 'Failed to delete main.js from', hideHome(mainjsPath))
-                kccp.logger.error(logSource, error)
-              }
-            }
-          }
-
-          kccp.logger.log(logSource, 'Cache cleared.')
+          console.log('Cache cleared.')
           break
         case 'start-find-in-page':
           this.startFindInPage(data.tabId, data.searchInput)
@@ -893,18 +765,11 @@ class Browser extends EventEmitter {
         case 'kc3-doupdate':
           await this.updateKc3(configStore.get('kc3kai.update.channel'))
           break
-        case 'kccp-modder-doupdate':
-          await this.updateKccpMods()
-          break
         case 'kc3-get-isupdating':
           result = { isUpdating: this.kc3IsUpdating, channel: this.kc3UpdatingChannel }
           break
-        case 'kccp-modder-get-isupdating':
-          result = { isUpdating: this.kccpModderIsUpdating }
-          break
         case 'kc3-select-custom-location':
         case 'select-custom-data-location':
-        case 'select-custom-kccp-location':
           const { canceled, filePaths } = await dialog.showOpenDialog({
             properties: ['openDirectory'],
           })
@@ -940,7 +805,7 @@ class Browser extends EventEmitter {
           break
         }
         case 'webui-zoom-changed':
-          //kccp.logger.log(logSource, 'zoom changed', data)
+          //console.log('zoom changed', data)
           let zoomWin = this.windows.find((w) => w.window.id === meta.windowId)
           zoomWin?.tabs.updateLayout(data.height)
           break
@@ -949,194 +814,9 @@ class Browser extends EventEmitter {
           modeWin?.tabs.updateLayout(data.height)
           break
         case 'webui-close-tab':
-          //kccp.logger.log(logSource, 'clicked tab X', data)
+          //console.log('clicked tab X', data)
           this.confirmCloseTab(data.tabId)
           break
-        case 'kccp-get-status':
-          result = getKccpStatus()
-          break
-        case 'kccp-get-config':
-          result = await getKccpConfig(configStore)
-          break
-        case 'kccp-save-config':
-          const newConfig = data
-          await setKccpConfig(newConfig)
-          if (configStore.get('proxy.enable') && newConfig.autoUpdateGitMods) {
-            await this.updateKccpMods()
-          } else {
-            await startStopKccp(configStore)
-            await this.applyProxy()
-          }
-          break
-        case 'kccp-import-cache':
-          let location = 'unknown'
-          try {
-            if (data?.builtIn) {
-              location = path.join(ROOT_DIR, 'resources/minimum-cache.zip')
-              await kccpCacheHandler.mergeCache(location)
-            } else {
-              const response = await dialog.showOpenDialog({
-                title: 'Select cache dump .zip file',
-                filters: [
-                  {
-                    name: '.zip files',
-                    extensions: ['zip'],
-                  },
-                ],
-                properties: ['openFile'],
-              })
-              if (!response.canceled) {
-                location = response.filePaths[0]
-                await kccpCacheHandler.mergeCache(location)
-              }
-            }
-          } catch (error) {
-            kccp.logger.error(logSource, "Couldn't load cache dump.", error)
-          }
-          break
-        case 'kccp-verify-cache':
-          const verifyResponse = dialog.showMessageBoxSync({
-            type: 'question',
-            title: 'Delete invalid files?',
-            buttons: ['Cancel', 'Delete', 'Keep'],
-            message: 'Delete invalid files?',
-            detail:
-              'Cached files created in an old version might count as invalid and will be deleted.',
-            defaultId: 0,
-            cancelId: 1,
-          })
-          if (verifyResponse === 0) return
-          await kccpCacheHandler.verifyCache(verifyResponse === 1)
-          break
-        case 'kccp-extract-spritesheet':
-          kccpConfig = await getKccpConfig(configStore)
-          cachePath = getKccpKcs2CachePath(kccpConfig.config)
-          source = await dialog.showOpenDialog({
-            title: 'Select a spritesheet',
-            defaultPath: cachePath,
-            filters: [
-              {
-                name: 'Spritesheet image',
-                extensions: ['png'],
-              },
-            ],
-            properties: ['openFile'],
-          })
-          if (source.canceled) return
-
-          target = await dialog.showOpenDialog({
-            title: 'Select a folder to extract to',
-            defaultPath: getKccpModPath(kccpConfig.config),
-            properties: ['openDirectory'],
-          })
-          if (target.canceled) return
-          await kccpModderUtils.extractSplit(source.filePaths[0], target.filePaths[0])
-          break
-        case 'kccp-make-outlines':
-          kccpConfig = await getKccpConfig(configStore)
-          cachePath = getKccpKcs2CachePath(kccpConfig.config)
-          source = await dialog.showOpenDialog({
-            title: 'Select a spritesheet',
-            defaultPath: cachePath,
-            filters: [
-              {
-                name: 'Spritesheet image',
-                extensions: ['png'],
-              },
-            ],
-            properties: ['openFile'],
-          })
-          if (source.canceled) return
-
-          target = await dialog.showSaveDialog({
-            title: 'Select a location to save outlines to',
-            defaultPath: getKccpModPath(kccpConfig.config),
-            filters: [
-              {
-                name: 'Images',
-                extensions: ['png'],
-              },
-            ],
-          })
-          if (target.canceled) return
-
-          await kccpModderUtils.outlines(source.filePaths[0], target.filePath)
-          break
-        case 'kccp-convert-poi':
-          kccpConfig = await getKccpConfig(configStore)
-          source = await dialog.showOpenDialog({
-            title: 'Select cache folder to import from',
-            defaultPath: getModPath(kccpConfig.config),
-            properties: ['openDirectory'],
-          })
-          if (source.canceled) return
-
-          target = await dialog.showOpenDialog({
-            title: 'Select a folder to export to',
-            defaultPath: getModPath(kccpConfig.config),
-            properties: ['openDirectory'],
-          })
-          if (target.canceled) return
-
-          await kccpModderUtils.importExternalMod(source.filePaths[0], target.filePaths[0])
-          break
-        case 'kccp-add-mod':
-          kccpConfig = await getKccpConfig(configStore)
-          const addModResponse = await dialog.showOpenDialog({
-            title: 'Select a mod metadata file',
-            filters: [
-              {
-                name: 'Mod metadata',
-                defaultPath: getKccpModPath(kccpConfig.config),
-                extensions: ['mod.json'],
-              },
-            ],
-            properties: ['openFile'],
-          })
-          if (addModResponse.canceled) return
-          if (kccpConfig.config.mods.map((m) => m.path).includes(addModResponse.filePaths[0])) {
-            kccp.logger.error(logSource, 'Mod already added')
-            return
-          }
-          kccpConfig.config.mods.push({ path: addModResponse.filePaths[0] })
-          await setKccpConfig(kccpConfig.config)
-          //await startStopKccp(configStore)
-          // will automatically start when fetching the config and checking for updates
-          await this.applyProxy()
-          break
-        case 'kccp-add-git-mod':
-          const { url } = data
-          if (!url) return
-          kccp.logger.log(logSource, 'Adding KCCP git mod')
-          await installKccpGitMod(configStore, url)
-          break
-        case 'kccp-update-git-mod':
-          const modToUpdate = data.mod
-          if (!path) return
-          kccp.logger.log(logSource, 'Updating KCCP git mod', modToUpdate.path)
-          await updateKccpGitMod(modToUpdate)
-          await startStopKccp(configStore)
-          break
-        case 'kccp-open-mod-folder':
-          const modToOpen = data.mod
-          kccpConfig = await getKccpConfig(configStore)
-          const modPath = this.getModPath(kccpConfig.config)
-          if (modPath) shell.openPath(modPath)
-          break
-        case 'kccp-log-get-recent':
-          kccp.logger.sendRecent()
-          break
-        case 'kccp-reload-mods':
-          await kccpPatcher.reloadModCache()
-          break
-        case 'kccp-reload-cache':
-          kccpCacher.loadCached()
-          break
-        case 'kccp-prepatch':
-          await kccpPatcher.prepatch()
-          break
-        case 'kccp-check-mitm-cert':
-          await kccp.checkTrustMitmCert()
       }
       return result
     })
@@ -1145,174 +825,13 @@ class Browser extends EventEmitter {
     this.resolveReady()
 
     // set up kc3 update worker thread
-    kccp.logger.log(logSource, 'Starting KC3 update service')
+    console.log('Starting KC3 update service')
 
     this.updateWorker = new updateWorker()
     this.updateWorker.on('message', this.handleWorkerMessage.bind(this))
 
+    await this.applyProxy()
     await this.updateKc3IfScheduled()
-
-    // Init KCCP
-    this.setProxyHandler()
-    if (
-      configStore.get('proxy.enable') &&
-      (await getKccpConfig(configStore))?.config?.autoUpdateGitMods
-    ) {
-      await this.updateKccpMods()
-    } else {
-      await startStopKccp(configStore)
-      await this.applyProxy()
-    }
-    // check to see if we need to retry kccp startup periodically
-    setTimeout(() => kccpCheckRestart(configStore), 5000)
-  }
-
-  async getProxyDestination() {
-    const proxyCfg = configStore.get('proxy')
-    if (proxyCfg.mode === 'kccp-internal') {
-      const { hostname, port } = (await getKccpConfig(configStore)).config
-      return { host: hostname, port }
-    } else {
-      const { host, port } = proxyCfg.client
-      return { host, port }
-    }
-  }
-
-  getModPath(config) {
-    return config.mods.length > 0
-      ? path.join(config.mods[config.mods.length - 1].path, '..')
-      : undefined
-  }
-
-  serverHost = ''
-  //requestIgnoreIds = []
-  setProxyHandler() {
-    //const proxyHeader = 'X-Proxied'
-    this.session.webRequest.onBeforeSendHeaders({ urls: ['<all_urls>'] }, (details, callback) => {
-      if (details.url.startsWith('ws')) return
-      const proxyCfg = configStore.get('proxy')
-      if (!proxyCfg.enable || proxyCfg.mode.endsWith('-internal') || proxyCfg.method !== 'header' || ['http-proxy', 'socks5-proxy'].includes(proxyCfg.mode)) {
-        callback({ requestHeaders: details.requestHeaders })
-        return
-      }
-
-      const url = new URL(details.url)
-      if (['/gadget_html5/', '/kcscontents/'].some((x) => url.pathname?.includes(x)))
-        details.requestHeaders['x-host'] = 'w00g.kancolle-server.com'
-      else if (this.serverHost) details.requestHeaders['x-host'] = this.serverHost
-
-      /*const wasProxied = details.requestHeaders[proxyHeader]
-      if (wasProxied)
-      {
-        console.log(`proxied id ${details.id}`)
-        delete details.requestHeaders[proxyHeader]
-        this.requestIgnoreIds.push(details.id)
-      }//*/
-      callback({ requestHeaders: details.requestHeaders })
-    })
-
-    this.session.webRequest.onBeforeRequest({ urls: ['<all_urls>'] }, async (details, callback) => {
-      if (details.url.startsWith('ws')) return
-      const url = new URL(details.url)
-      const cfg = configStore.get('proxy')
-
-      if (
-        cfg.enable &&
-        !cfg.mode.endsWith('-internal') &&
-        cfg.method !== 'https-mitm' &&
-        !['http-proxy', 'socks5-proxy'].includes(cfg.mode) &&
-        details.method === 'GET' &&
-        !url.pathname.includes('/kcscontents/news')
-      ) {
-        if (url.protocol === 'https:' && url.hostname.endsWith('.kancolle-server.com')) {
-          if (!url.hostname.startsWith('w00')) this.serverHost = url.hostname
-
-          const { host, port } = await this.getProxyDestination()
-          let redirectURL = `http://${host}:${port}` //.replace(/^https:/, 'kancolle:')
-          if (cfg.method === 'path')
-            redirectURL += `/${url.protocol.slice(0, -1)}/${(url.host.match(/^([^.]+\.kancolle-server\.com)$/) || ['', url.hostname])[1]}`
-          // shortform pathing not yet in public KCCP
-          //redirectURL += `/${url.protocol.slice(0, -1)}/${(url.host.match(/^([^.]+)\.kancolle-server\.com$/) || ['', url.hostname])[1]}`;
-          redirectURL += `${url.pathname}${url.search}`
-
-          callback({ redirectURL })
-          return
-        } else if (this.serverHost && url.protocol === 'http:') {
-          const match = url.pathname?.match(/\/kcs2\/resources\/world\/(.*)_([lst])\.png$/)
-          const worldStr = this.serverHost.split('.')[0].substring(1) + '_ver_com'
-          if (match && match[1] != worldStr) {
-            url.pathname = url.pathname.replace(match[1], worldStr)
-            // careful! potential for an infinite redirect if this is botched
-            callback({ redirectURL: url.href })
-            return
-          }
-        }
-      }
-
-      callback({ cancel: false })
-    })
-
-    /*
-    protocol.registerStreamProtocol('kancolle', (request, callback) => {
-      const { method, headers } = request
-      const url = new URL(request.url)
-        
-      const cfg = configStore.all
-      const host = cfg.proxy.client.host
-      const port = cfg.proxy.client.port
-      const proxyUrl = `http://${host}:${port}/https/${url.hostname}${url.pathname}${url.search}`
-      const destUrl = request.url.replace(/^kancolle:/,'https:')
-      const isKancolle = url.hostname.endsWith('.kancolle-server.com')
-      const proxyAll = cfg.proxy.mode.startsWith('all-')
-
-      if (this.isProxyEnabled && (isKancolle || proxyAll)) {
-        if (cfg.proxy.mode == 'kccp-internal') {
-          const newHeaders = { ...headers }
-          newHeaders['X-Proxied'] = '1'
-          proxyRequest(
-            {
-              method,
-              headers: newHeaders,
-              url: destUrl,
-              bodyStream: request.uploadData?.length
-                ? Readable.from(request.uploadData.map((part) => part.bytes))
-                : null,
-            },
-            callback,
-          )
-        } else if (cfg.proxy.mode.endsWith('-external')) {
-          this.proxyHTTPSRequest(request, destUrl, method, headers, callback, 'External proxy')
-        }
-        return
-      }
-
-      // direct handling
-      this.proxyHTTPSRequest(request, url.href, method, headers, callback)
-    })
-    //*/
-  }
-
-  proxyHTTPSRequest(request, url, method, headers, callback, type = 'HTTPS request') {
-    const proxyReq = net.request({ url, method, headers }, (res) => {
-      callback({
-        statusCode: res.statusCode,
-        headers: res.headers,
-        data: res,
-      })
-    })
-
-    proxyReq.on('error', (err) => {
-      kccp.logger.error(kccp.kccpLogSource, `${type} failed: ${err}`)
-      callback({ statusCode: 502, data: null })
-    })
-
-    if (request.uploadData) {
-      for (const part of request.uploadData) {
-        if (part.bytes) proxyReq.write(Buffer.from(part.bytes))
-      }
-    }
-
-    proxyReq.end()
   }
 
   async handleWorkerMessage(msg) {
@@ -1326,12 +845,7 @@ class Browser extends EventEmitter {
         this.kc3UpdatingChannel = msg.data.channel
         this.sendToAllWindows(msg.type, msg.data)
         break
-      case 'status-kccp-modder-is-updating':
-        this.kccpModderIsUpdating = msg.data.isUpdating
-        this.sendToAllWindows(msg.type, msg.data)
-        break
       case 'error-do-kc3-update':
-      case 'error-do-kccp-modder-update':
       case 'update-process-started':
       case 'update-process-progress':
         this.sendToAllWindows(msg.type, msg.data)
@@ -1349,10 +863,6 @@ class Browser extends EventEmitter {
           if (!channel.startsWith('custom'))
             configStore.set('kc3kai.update.time.' + channel, Date.now())
           await this.checkStartKc3(kc3Path)
-        } else if (msg.data.name === 'KCCP Mod Update') {
-          kccp.logger.log(kccp.kccpLogSource, 'Finished updating KCCP mods.')
-          await startStopKccp(configStore)
-          await this.applyProxy()
         }
         break
       default:
@@ -1365,15 +875,6 @@ class Browser extends EventEmitter {
 
     const idx = this.windows.indexOf(removingWin)
     if (idx >= 0) this.windows.splice(idx, 1)
-
-    if (
-      this.windows.length == 1 ||
-      (this.windows.length > 0 && this.kccpMainWindowId == removingWin.window.id)
-    ) {
-      const newMainWindow = this.windows[0].window
-      this.kccpMainWindowId = newMainWindow.id
-      kccp.logger.setMainWindow(newMainWindow)
-    }
 
     if (removingWin?.window.isDestroyed() === false) removingWin.destroy()
   }
@@ -1427,7 +928,7 @@ class Browser extends EventEmitter {
         !cookie.name.startsWith('ck')
       )
         return
-      //kccp.logger.log(logSource, `Cookie ${removed ? 'removed' : 'changed'}: ${cookie.name}=${cookie.value} ; Cause: ${cause}`)
+      //console.log(`Cookie ${removed ? 'removed' : 'changed'}: ${cookie.name} ; Cause: ${cause}`)
       this.interceptCookieUpdate({ cookie, cause, removed })
     })
 
@@ -1502,16 +1003,10 @@ class Browser extends EventEmitter {
         configStore.set('window.state.width', size[0])
         configStore.set('window.state.height', size[1])
       } catch (error) {
-        kccp.logger.error(logSource, 'Failed to set window.state values during resize.')
+        console.error('Failed to set window.state values during resize.')
       }
     })
     this.windows.push(newTabbedWindow)
-    if (this.windows.length == 1) {
-      const newMainWindow = this.windows[0].window
-      this.kccpMainWindowId = newMainWindow.id
-      kccp.logger.setMainWindow(newMainWindow)
-      initKccp()
-    }
 
     //* webui.html
     if (devtoolsDebug && shellDebug) {
@@ -1671,7 +1166,7 @@ class Browser extends EventEmitter {
       this.session.cookies.set(cookie)
     })
 
-    kccp.logger.log(logSource, 'DMM cookie hack applied.')
+    console.log('DMM cookie hack applied.')
   }
 
   interceptCookieUpdate(changeInfo) {
@@ -1680,7 +1175,7 @@ class Browser extends EventEmitter {
 
     // CKCY force 1
     if (changeInfo.cookie.name == 'ckcy' && changeInfo.cookie.value != '1') {
-      kccp.logger.log(logSource, 'ckcy cookie changed, re-hacking it.')
+      console.log('ckcy cookie changed, re-hacking it.')
       // console.log("CKCY=", changeInfo.cookie.value, changeInfo);
       this.session.cookies.set(
         {
@@ -1699,7 +1194,7 @@ class Browser extends EventEmitter {
 
     // CKLG force welcome
     if (changeInfo.cookie.name == 'cklg' && changeInfo.cookie.value != 'welcome') {
-      kccp.logger.log(logSource, 'cklg cookie changed, re-hacking it.')
+      console.log('cklg cookie changed, re-hacking it.')
       // console.log("CKLG=", changeInfo.cookie.value, changeInfo);
       this.session.cookies.set(
         {
@@ -1721,7 +1216,7 @@ class Browser extends EventEmitter {
       changeInfo.cookie.name == 'ckcy_remedied_check' &&
       changeInfo.cookie.value != 'ec_mrnhbtk'
     ) {
-      kccp.logger.log(logSource, 'ckcy_remedied_check cookie changed, re-hacking it.')
+      console.log('ckcy_remedied_check cookie changed, re-hacking it.')
       // console.log("ckcy_remedied_check=", changeInfo.cookie.value, changeInfo);
       this.session.cookies.set(
         {
@@ -1748,9 +1243,9 @@ class Browser extends EventEmitter {
 
     webContents.on('devtools-opened', (e) => {
       const devtools = webContents.devToolsWebContents
-      kccp.logger.log(logSource, 'DevTools opened')
+      console.log('DevTools opened')
       devtools.on('did-create-window', (window, details) => {
-        kccp.logger.log(logSource, 'Window created', details)
+        console.log('Window created', details)
       })
     })
 
@@ -1932,7 +1427,7 @@ class Browser extends EventEmitter {
         let date = new Date(lastUpdated)
         date.setDate(date.getDate() + scheduleMap[schedule])
         doUpdate = date < new Date()
-        kccp.logger.log(logSource, 'Next KC3 update scheduled for ', date)
+        console.log('Next KC3 update scheduled for ', date)
       }
     }
 
@@ -1943,15 +1438,6 @@ class Browser extends EventEmitter {
       const kc3Path = this.getKc3Path()
       await this.checkStartKc3(kc3Path)
     }
-  }
-
-  async updateKccpMods() {
-    const config = (await getKccpConfig(configStore))?.config
-    kccp.logger.log(kccp.kccpLogSource, 'Checking for asset mod updates...')
-    this.updateWorker.postMessage({
-      type: 'do-kccp-modder-update',
-      data: { config },
-    })
   }
 
   async updateKc3(channel) {
@@ -1967,23 +1453,20 @@ class Browser extends EventEmitter {
     }
 
     if (!kc3Path) {
-      kccp.logger.log(logSource, 'No kc3 path defined.')
+      console.log('No kc3 path defined.')
       return
     }
 
     const kc3SrcPath = path.join(kc3Path, 'src')
     if (fsSync.existsSync(kc3SrcPath)) kc3Path = kc3SrcPath
-    kccp.logger.log(logSource, 'Searching for KC3Kai in', hideHome(kc3Path))
+    console.log('Searching for KC3Kai in', hideHome(kc3Path))
 
     // once we're updated and kc3 is loaded, remove the default new tab page
     // and open the kc3 start page + strat room
 
     if (!fsSync.existsSync(kc3Path)) {
-      kccp.logger.error(logSource, `Unable to find KC3 in ${hideHome(kc3Path)}.`)
-      kccp.logger.log(
-        logSource,
-        "Please open the KC3Kai section and click 'Check for updates & reload'.",
-      )
+      console.error(`Unable to find KC3 in ${hideHome(kc3Path)}.`)
+      console.log("Please open the KC3Kai section and click 'Check for updates & reload'.")
       return
     }
 
@@ -1991,14 +1474,13 @@ class Browser extends EventEmitter {
     try {
       kc3 = await this.session.loadExtension(kc3Path)
     } catch (error) {
-      kccp.logger.error(
-        logSource,
+      console.error(
         `Unable to load KC3 from ${hideHome(kc3Path)}. It may need to be installed/updated.`,
       )
-      kccp.logger.error(logSource, error)
+      console.error(error)
       return
     }
-    kccp.logger.log(logSource, 'KC3Kai loaded! ID: ', kc3.id)
+    console.log('KC3Kai loaded! ID: ', kc3.id)
 
     // open KC3 start page
     kc3ExtensionId = kc3.id

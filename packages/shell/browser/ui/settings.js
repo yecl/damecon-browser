@@ -1,26 +1,3 @@
-scrollTop = function (selector, force = false) {
-  var el = document.querySelector(selector)
-
-  // the scroll bar is all the way down, so we know they want to follow the text
-  if (
-    el &&
-    el.scrollTop !== undefined &&
-    (force || el.scrollTop == el.scrollHeight - el.clientHeight)
-  ) {
-    // have to push our code outside of this thread since the text hasn't updated yet
-    setTimeout(function () {
-      el.scrollTop = el.scrollHeight - el.clientHeight
-    }, 0)
-  }
-}
-
-ko.extenders.scrollFollow = function (target, selector) {
-  target.subscribe(function (newval) {
-    scrollTop(selector)
-  })
-  return target
-}
-
 class Settings {
   theme = ko.observable('andra')
   brightness = ko.observable('system')
@@ -51,57 +28,10 @@ class Settings {
   ]
 
   config = {}
-  kccpConfig = {
-    current: ko.observable(),
-    modInfo: ko.observable(),
-  }
-
-  addingKccpGitMod = ko.observable(false)
-  kccpGitModUrl = ko.observable('')
-  kccpModsOutOfDate = ko.pureComputed(() => {
-    return this.kccpConfig
-      .modInfo()
-      .filter((m) => m.latestVersion && m.info && m.latestVersion != m.info.version).length
-  })
-
-  kccpStatus = ko.observable({ busy: false, started: false })
-  kccpTabs = { config: 0, mods: 1, log: 2 }
-  kccpTab = ko.observable(0)
-  appTabs = { window: 0, kancolle: 1, application: 2, appLog: 3, advanced: 4 }
+  appTabs = { window: 0, kancolle: 1, application: 2, advanced: 4 }
   appTab = ko.observable(this.appTabs.window)
-  // TODO: Don't reference UI stuff in VM
-  kccpLogRecent = ko.observableArray([]).extend({ scrollFollow: '#kccp-log-scroller' })
-
-  appLogRecent = ko.observableArray([]).extend({ scrollFollow: '#app-log-scroller' })
-
-  logTypes = ['log', 'error']
-  badgeClasses = {
-    log: 'info',
-    trace: 'warning',
-    error: 'danger',
-  }
-
-  getMods = [
-    {
-      name: 'English Patch',
-      authors: ['Oradimi', 'InochiPM'],
-      url: 'https://github.com/Oradimi/KanColle-English-Patch-KCCP',
-    },
-    {
-      name: 'True Critical Hit',
-      authors: ['Oradimi'],
-      url: 'https://github.com/Oradimi/KanColle-True-Critical-Hits',
-    },
-    {
-      name: 'KC Fixes',
-      authors: ['Tibo'],
-      url: 'https://github.com/Tibowl/KCFixes',
-    },
-  ]
 
   version = ''
-
-  logMaxLength = 50
 
   selectedConfigPage = ko.observable(0)
 
@@ -124,141 +54,14 @@ class Settings {
   canSetKc3Channel = ko.computed(() => !this.kc3IsUpdating(), this)
   canUpdateKc3 = ko.observable(true)
 
-  kccpModderIsUpdating = ko.observable(false)
-  canUpdateKccpMods = ko.observable(false)
-
   downloads = ko.observableArray([])
 
   /*async sendMessage(type, data) {
     return await ipc.send('webui-message', { type, data })
   }*/
 
-  async prepKccpConfig(config) {
-    const current = config || (await kccpConfigStore.all())
-    this.kccpConfig.current(current.config)
-    this.kccpConfig.modInfo(current.modInfo)
-    this.prepKccpConfigItems()
-  }
-
-  prepKccpConfigItems() {
-    const keys = [
-      'hostname',
-      'port',
-      'httpsPort',
-      'mode',
-      'httpTimeoutMs',
-      'cacheLocation',
-      'disableBrowserCache',
-      'verifyCache',
-      'bypassGadgetUpdateCheck',
-      'enableModder',
-      'autoUpdateGitMods',
-    ]
-    const cfg = this.kccpConfig
-    this.convertPropertiesToObservables(cfg.current(), {
-      viewModel: cfg,
-      keys,
-    })
-    for (const key of keys) {
-      if (cfg[key].getSubscriptionsCount() === 0) {
-        cfg[key].subscribe(async (newValue) => {
-          cfg.current()[key] = newValue
-          await kccpConfigStore.save(cfg.current())
-        })
-      }
-    }
-    if (!cfg.initialized) {
-      cfg.useCacheLocation = ko.observable(cfg.cacheLocation() !== 'default')
-      cfg.useCacheLocation.subscribe((newValue) => {
-        if (!newValue) cfg.cacheLocation('default')
-      })
-      cfg.initialized = true
-    }
-  }
-
   async clearSessionCache() {
     await sendToMain('clear-cache')
-  }
-
-  kccpOpenLog() {
-    this.kccpTab(this.kccpTabs.log)
-  }
-  async kccpImportBasicCacheDump() {
-    this.kccpOpenLog()
-    await sendToMain('kccp-import-cache', { builtIn: true })
-  }
-  async kccpImportCacheDump() {
-    this.kccpOpenLog()
-    await sendToMain('kccp-import-cache', { builtIn: false })
-  }
-  async kccpReloadCache() {
-    this.kccpOpenLog()
-    await sendToMain('kccp-reload-cache')
-  }
-  async kccpVerifyCache() {
-    this.kccpOpenLog()
-    await sendToMain('kccp-verify-cache')
-  }
-  async kccpPrepatchAssets() {
-    this.kccpOpenLog()
-    await sendToMain('kccp-prepatch')
-  }
-  async kccpExtractSpritesheet() {
-    await sendToMain('kccp-extract-spritesheet')
-  }
-  async kccpMakeOutlines() {
-    await sendToMain('kccp-make-outlines')
-  }
-  async kccpConvertFromPoi() {
-    await sendToMain('kccp-convert-poi')
-  }
-
-  kccpBeginAddGitMod() {
-    this.kccpGitModUrl('')
-    this.addingKccpGitMod(true)
-  }
-  kccpCancelAddGitMod() {
-    this.addingKccpGitMod(false)
-  }
-
-  async kccpAddGitMod(repoUrl) {
-    const url = repoUrl || this.kccpGitModUrl()
-    this.kccpGitModUrl('')
-    this.addingKccpGitMod(false)
-    console.log('Adding git mod ' + url)
-    await sendToMain('kccp-add-git-mod', { url })
-  }
-  async kccpUpdateGitMod(mod) {
-    console.log('Updating git mod ' + mod.path)
-    await sendToMain('kccp-update-git-mod', { mod })
-  }
-  async kccpOpenModFolder(mod) {
-    await sendToMain('kccp-open-mod-folder', { mod })
-  }
-  async kccpAddMod() {
-    await sendToMain('kccp-add-mod')
-  }
-  async kccpReloadMods() {
-    await sendToMain('kccp-reload-mods')
-  }
-  async kccpRemoveMod(path) {
-    const cfg = this.kccpConfig.current()
-    const ind = cfg.mods.findIndex((m) => m.path == path)
-    cfg.mods.splice(ind, 1)
-    await kccpConfigStore.save(cfg)
-  }
-  async kccpMoveMod(path, dir) {
-    const cfg = this.kccpConfig.current()
-    const ind = cfg.mods.findIndex((m) => m.path == path)
-    const mod = cfg.mods.find((m) => m.path == path)
-    const newIdx = ind + dir
-    if (newIdx < 0 || newIdx >= cfg.mods.length) {
-      console.error('Tried to move a mod out of range.')
-      return
-    }
-    cfg.mods.splice(ind, 1)
-    cfg.mods.splice(ind + dir, 0, mod)
-    await kccpConfigStore.save(cfg)
   }
 
   convertPropertiesToObservables(baseObj, opts) {
@@ -482,14 +285,6 @@ class Settings {
     this.config.app.data.customPath(path)
   }
 
-  async getCustomKccpPath() {
-    const result = await sendToMain('select-custom-kccp-location')
-    if (result.canceled || !result.filePaths.length) return
-    const path = result.filePaths[0]
-    console.log('Selected KCCP path', path)
-    this.kccpConfig.cacheLocation(path)
-  }
-
   friendlySize(bytes, decimals = 2) {
     let received = bytes
     if (received < 1024) return `${received}bytes`
@@ -533,11 +328,7 @@ class Settings {
         this.kc3IsUpdating(msg.data.isUpdating)
         this.kc3UpdatingChannel(msg.data.channel)
         break
-      case 'status-kccp-modder-is-updating':
-        this.kccpModderIsUpdating(msg.data.isUpdating)
-        break
       case 'error-do-kc3-update':
-      case 'error-do-kccp-modder-update':
         // TODO: report the error
         break
       case 'update-process-started':
@@ -561,52 +352,6 @@ class Settings {
         break
       case 'config-saved':
         await this.prepConfigProperties(msg.data)
-        break
-      case 'kccp-config-saved':
-        await this.prepKccpConfig()
-        break
-      case 'kccp-status':
-        this.kccpStatus(msg.data)
-        break
-      case 'kccp-log-update':
-        if (!this.logTypes.includes(msg.data[2])) return
-        let logTarget = this.appLogRecent
-        if (msg.data[1].startsWith('kccp-')) logTarget = this.kccpLogRecent
-        logTarget.push(msg.data)
-        if (logTarget().length > this.logMaxLength) logTarget.shift()
-        break
-      case 'kccp-log-recent':
-        msg.data.reverse()
-        const kccpLog = msg.data.filter(
-          (l) => l[1].startsWith('kccp-') && this.logTypes.includes(l[2]),
-        )
-        const appLog = msg.data.filter(
-          (l) => !l[1].startsWith('kccp-') && this.logTypes.includes(l[2]),
-        )
-        this.kccpLogRecent(kccpLog.slice(kccpLog.length - this.logMaxLength))
-        this.appLogRecent(appLog.slice(appLog.length - this.logMaxLength))
-        break
-      case 'kccp-git-mod-installed':
-        const installedProcessName = 'Installing/updating KCCP mod'
-        const installedProcess = this.processes().find((p) => p.name == installedProcessName)
-        if (installedProcess) this.processes.remove(installedProcess)
-        console.log('KCCP git mod installed:', msg.data)
-        break
-      case 'kccp-git-mod-updated':
-        const updatedProcessName = 'Installing/updating KCCP mod'
-        const updatedProcess = this.processes().find((p) => p.name == updatedProcessName)
-        if (updatedProcess) this.processes.remove(updatedProcess)
-        console.log('KCCP git mod updated:', msg.data)
-        break
-      case 'kccp-git-mod-progress':
-        try {
-          const installingProcessName = 'Installing/updating KCCP mod'
-          const installingProcess = this.processes().find((p) => p.name == installingProcessName)
-          if (!installingProcess) this.addNewProcess({ name: installingProcessName })
-        } catch (error) {
-          console.error('Error checking processes', error)
-        }
-        console.log('KCCP git mod install/update progress:', msg.data)
         break
       default:
         throw new Error(`Unknown message type ${msg.type || '(none)'}`)
@@ -679,12 +424,6 @@ class Settings {
     this.canUpdateKc3(!this.kc3IsUpdating() && !!this.config?.kc3kai?.update.channel())
   }
 
-  setCanUpdateKccpMods() {
-    this.canUpdateKccpMods(
-      !this.kccpModderIsUpdating() && !!this.config?.kccpConfig?.current()?.autoUpdateGitMods,
-    )
-  }
-
   compareVersions(a, b) {
     const pa = a.split('.').map(Number)
     const pb = b.split('.').map(Number)
@@ -707,10 +446,6 @@ class Settings {
     )
     this.paths = appInfo.paths
     this.version = appInfo.version
-    this.kccpStatus(appInfo.kccpStatus)
-
-    await this.prepKccpConfig()
-
     await this.prepConfigProperties()
     console.log('done prepping config', this.config)
     this.settingsInitialized(true)
@@ -735,21 +470,11 @@ class Settings {
     this.addBrowserListeners()
 
     const kc3UpdateStatus = await sendToMain('kc3-get-isupdating')
-    const kccpModUpdateStatus = await sendToMain('kccp-modder-get-isupdating')
     this.kc3IsUpdating.subscribe((newValue) => this.setCanUpdateKc3())
     this.kc3IsUpdating(kc3UpdateStatus.isUpdating)
-    this.kccpModderIsUpdating(kccpModUpdateStatus.isUpdating)
     this.kc3UpdatingChannel(kc3UpdateStatus.channel)
 
-    await sendToMain('kccp-log-get-recent')
-
     this.config.version(this.version.split(' v')[1])
-
-    this.kccpTab.subscribe((value) => {
-      if (value === this.kccpTabs.log) {
-        setTimeout(() => scrollTop('#kccp-log-scroller', true), 10)
-      }
-    })
   }
 }
 window.vm = new Settings()

@@ -16,8 +16,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -29,18 +27,6 @@ jobs:
 
       - name: Build packages
         run: yarn build
-
-      - name: Build kccacheproxy minimum-cache
-        working-directory: packages/kccacheproxy
-        run: |
-          npm install
-          mkdir -p cache_template
-          cd cache_template && node ../src/proxy/preload && cd ..
-          mkdir -p out/KCCacheProxy
-          cp -r cache_template/* out/KCCacheProxy/
-          cp -r out/KCCacheProxy/cache/ minimum-cache/
-          zip -r minimum-cache.zip minimum-cache/
-          cp minimum-cache.zip ../minimum-cache.zip
 
       - name: Make macOS distributables
         working-directory: packages/shell
@@ -63,8 +49,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -76,19 +60,6 @@ jobs:
 
       - name: Build packages
         run: yarn build
-
-      - name: Build kccacheproxy minimum-cache
-        working-directory: packages/kccacheproxy
-        run: |
-          npm install
-          New-Item -ItemType Directory -Force cache_template
-          Push-Location cache_template; node ../src/proxy/preload; Pop-Location
-          New-Item -ItemType Directory -Force out/KCCacheProxy
-          Copy-Item -Recurse cache_template/* out/KCCacheProxy/
-          Copy-Item -Recurse out/KCCacheProxy/cache/ minimum-cache/
-          Compress-Archive -Path minimum-cache/* -DestinationPath minimum-cache.zip
-          Copy-Item minimum-cache.zip ../minimum-cache.zip
-        shell: pwsh
 
       - name: Make Windows distributables
         working-directory: packages/shell
@@ -113,8 +84,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -131,18 +100,6 @@ jobs:
 
       - name: Build packages
         run: yarn build
-
-      - name: Build kccacheproxy minimum-cache
-        working-directory: packages/kccacheproxy
-        run: |
-          npm install
-          mkdir -p cache_template
-          cd cache_template && node ../src/proxy/preload && cd ..
-          mkdir -p out/KCCacheProxy
-          cp -r cache_template/* out/KCCacheProxy/
-          cp -r out/KCCacheProxy/cache/ minimum-cache/
-          zip -r minimum-cache.zip minimum-cache/
-          cp minimum-cache.zip ../minimum-cache.zip
 
       - name: Make Linux distributables
         working-directory: packages/shell

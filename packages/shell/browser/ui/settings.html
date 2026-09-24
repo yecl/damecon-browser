@@ -102,9 +102,6 @@
           <a class="nav-link" href="#" data-bind="attr: { class: `nav-link${appTab() === appTabs.application ? ' active' : ''}` }, click: () => appTab(appTabs.application)">Application</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="#" data-bind="attr: { class: `nav-link${appTab() === appTabs.appLog ? ' active' : ''}` }, click: () => appTab(appTabs.appLog)">Application Log</a>
-        </li>
-        <li class="nav-item">
           <a class="nav-link" href="#" data-bind="attr: { class: `nav-link${appTab() === appTabs.advanced ? ' active' : ''}` }, click: () => appTab(appTabs.advanced)">Advanced</a>
         </li>
       </ul>
@@ -225,24 +222,6 @@
         <button type="button" class="btn btn-secondary" data-bind="click: clearSessionCache">Clear browser cache</button>
       </div>
       <!-- /ko -->
-      <!-- ko if: appTab() === appTabs.appLog -->
-      <div class="settings-group">
-        <div id="app-log-scroller" class="log-scroller">
-          <ul>
-            <!-- ko foreach: appLogRecent -->
-            <li>
-              <small>
-                <span data-bind="text: $data[2], attr: { class: `badge badge-${$parent.badgeClasses[$data[2]]}` }"></span>
-                <!-- ko foreach: $data.slice(3) -->
-                <span data-bind="text: typeof $data === 'object' ? JSON.stringify($data) : $data"></span>
-                <!-- /ko -->
-              </small>
-            </li>
-            <!-- /ko -->
-          </ul>
-        </div>
-      </div>
-      <!-- /ko -->
       <!-- ko if: appTab() === appTabs.advanced -->
       <p>Damecon must be restarted for these settings to take effect.</p>
       <h5>Behavior</h5>
@@ -351,7 +330,7 @@
 
     <script type="text/html" id="settings-content-2">
       <h3>Proxy Settings</h3>
-      <div class="settings-group" data-bind="enable: !kccpStatus().busy">
+      <div class="settings-group">
         <div class="form-check form-row row">
           <div class="form-check col-sm-2">
             <input class="form-check-input" id="proxyenable" type="checkbox" data-bind="checked: config.proxy.enable">
@@ -361,16 +340,9 @@
             <label for="proxymode" class="form-check-label">Mode</label>
             <select id="proxymode" class="col form-control" data-bind="options: configSchema.proxy.mode.options, value: config.proxy.mode"></select>
           </div>
-          <!-- ko if: !['http-proxy', 'socks5-proxy'].includes(config.proxy.mode()) -->
-          <div class="form-check col">
-            <label for="proxymethod" class="form-check-label">Method</label>
-            <select id="proxymethod" class="col form-control" data-bind="options: configSchema.proxy.method.options, value: config.proxy.method"></select>
-          </div>
-          <!-- /ko -->
         </div>
       </div>
-      <!-- ko if: config.proxy.mode().endsWith('-external') || ['http-proxy', 'socks5-proxy'].includes(config.proxy.mode()) -->
-      <h5>External Proxy</h5>
+      <h5>Proxy Server</h5>
       <div class="settings-group">
         <div class="form-row">
           <label for="proxyclienthost" class="col-sm-3">Host</label>
@@ -386,227 +358,6 @@
           </div>
         </div>
       </div>
-      <!-- /ko -->
-      <!-- ko if: config.proxy.mode() === 'kccp-internal' -->
-      <h5>KCCacheProxy</h5>
-      <ul class="nav nav-tabs">
-        <li class="nav-item">
-          <a href="#" data-bind="attr: { class: `nav-link${kccpTab() == kccpTabs.config ? ' active' : ''}` }, click: () => kccpTab(kccpTabs.config)">Configuration</a>
-        </li>
-        <li class="nav-item">
-          <a href="#" data-bind="attr: { class: `nav-link${kccpTab() == kccpTabs.mods ? ' active' : ''}` }, click: () => kccpTab(kccpTabs.mods)">
-            <span>Asset Mods</span>
-            <!-- ko if: kccpModsOutOfDate() > 0 -->
-            <span class="badge badge-danger" data-bind="text: kccpModsOutOfDate"></span>
-            <!-- /ko -->
-          </a>
-        </li>
-        <li class="nav-item">
-          <a href="#" data-bind="attr: { class: `nav-link${kccpTab() == kccpTabs.log ? ' active' : ''}` }, click: () => kccpTab(kccpTabs.log)">Proxy Log</a>
-        </li>
-      </ul>
-      <div class="tab-content" data-bind="enable: !kccpStatus().busy">
-        <!-- ko if: kccpTab() == kccpTabs.config -->
-        <div class="settings-group">
-          <div class="form-row">
-            <div class="col-sm-3"><label for="proxyserverhost">Hostname/IP</label></div>
-            <div class="col">
-              <input id="proxyserverhost" type="text" class="form-control" data-bind="value: kccpConfig.hostname" placeholder="Enter host/IP (e.g. 127.0.0.1)">
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="col-sm-3"><label for="proxyserverporthttp">HTTP Port</label></div>
-            <div class="col">
-              <input id="proxyserverporthttp" type="number" class="form-control" data-bind="value: kccpConfig.port" placeholder="Enter HTTP port (e.g. 8081)">
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="col-sm-3"><label for="proxyserverporthttps">HTTPS Port</label></div>
-            <div class="col">
-              <input id="proxyserverporthttps" type="number" class="form-control" data-bind="value: kccpConfig.httpsPort" placeholder="Enter HTTPS port (e.g. 8081)">
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="col-sm-3"><label for="proxyservermode">Mode</label></div>
-            <div class="col">
-              <select id="proxyservermode" class="form-control" data-bind="value: kccpConfig.mode">
-                <option value="http-https">HTTP+HTTPS</option>
-                <option value="http">HTTP</option>
-                <option value="https">HTTPS</option>
-              </select>
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="col-sm-3"><label for="proxyservertimeoutms">Request Timeout (ms)</label></div>
-            <div class="col">
-              <input id="proxyservertimeoutms" type="number" class="form-control" data-bind="value: kccpConfig.httpTimeoutMs" placeholder="Enter request timeout (e.g. 60000)">
-            </div>
-          </div>
-          <p>KCCacheProxy is built into Damecon. The hostname/port settings can be used to allow other KanColle clients to connect through this KCCP instance.</p>
-          <div class="form-check">
-            <input class="form-check-input" id="useproxycachelocation" type="checkbox" data-bind="checked: kccpConfig.useCacheLocation">
-            <label class="form-check-label" for="useproxycachelocation">Custom Cache Location</label>
-          </div>
-          <!-- ko if: kccpConfig.useCacheLocation -->
-          <div class="input-group col">
-            <input id="proxycachelocation" type="text" class="form-control sensitive" data-bind="value: kccpConfig.cacheLocation, enable: kccpConfig.useCacheLocation" placeholder="Select cache location">
-            <div class="input-group-append">
-              <button type="button" class="btn btn-secondary-sm" data-bind="enable: kccpConfig.useCacheLocation, click: getCustomKccpPath">browse</button>
-            </div>
-          </div>
-          <!-- /ko -->
-          <div class="form-check">
-            <input class="form-check-input" id="verifycache" type="checkbox" data-bind="checked: kccpConfig.verifyCache">
-            <label class="form-check-label" for="verifycache">Automatically verify cache integrity (takes some time)</label>
-          </div>
-          <div class="form-check">
-            <input class="form-check-input" id="disablebrowserCache" type="checkbox" data-bind="checked: kccpConfig.disableBrowserCache">
-            <label class="form-check-label" for="disablebrowserCache">Disable browser caching</label>
-          </div>
-          <div class="form-check">
-            <input class="form-check-input" id="gadgetbypass" type="checkbox" data-bind="checked: kccpConfig.bypassGadgetUpdateCheck">
-            <label class="form-check-label" for="gadgetbypass">Bypass gadget server</label>
-          </div>
-          <div class="form-group mt-3">
-            <button type="button" class="btn btn-secondary" data-bind="click: kccpReloadCache" title="reload KCCP cache">Reload cache</button>
-            <button type="button" class="btn btn-secondary" data-bind="click: kccpVerifyCache" title="verify KCCP cache">Verify cache (may take a bit)</button>
-          </div>
-          <div class="form-group">
-            <button type="button" class="btn btn-secondary" data-bind="click: kccpImportBasicCacheDump" title="import built-in basic cache">Import built-in basic cache dump</button>
-            <button type="button" class="btn btn-secondary" data-bind="click: kccpImportCacheDump" title="import cache dump">Import cache dump</button>
-          </div>
-          <div class="form-group">
-            <span><a href="https://github.com/Tibowl/KCCacheProxy/wiki/Configuration" target="_blank">Configuration help</a></span>
-          </div>
-          <div class="form-group">
-            <span><a href="https://github.com/Tibowl/KCCacheProxy/wiki/Installation-and-setup#using-cache-dumps" target="_blank">Where/how to get cache dumps</a></span>
-          </div>
-        </div>
-        <!-- /ko -->
-        <!-- ko if: kccpTab() == kccpTabs.mods -->
-        <div class="settings-group">
-          <div class="form-check">
-            <input class="form-check-input" id="enablemodder" type="checkbox" data-bind="checked: kccpConfig.enableModder">
-            <label class="form-check-label" for="enablemodder">Enable asset modifiers</label>
-          </div>
-          <!-- ko if: kccpConfig.enableModder() -->
-          <div class="form-check">
-            <input class="form-check-input" id="autoupdategitmods" type="checkbox" data-bind="checked: kccpConfig.autoUpdateGitMods">
-            <label class="form-check-label" for="autoupdategitmods">Auto-update git mods</label>
-          </div>
-          <!-- /ko -->
-        </div>
-        <!-- ko if: kccpConfig.enableModder() -->
-        <h6>Installed mods</h6>
-        <div class="settings-group">
-          <div class="form-items-scroller">
-            <!-- ko foreach: kccpConfig.modInfo -->
-            <div class="kccp-mod">
-              <div class="kccp-mod-label">
-                <div>
-                  <span data-bind="text: `${$index()+1}.`"></span>
-                  <!-- ko if: !$data.info -->
-                  <span data-bind="text: path"></span>
-                  <!-- /ko -->
-                  <!-- ko if: $data.info -->
-                  <span data-bind="text: info.name"></span>
-                  <span data-bind="text: `v${info.version}`" class="subtext"></span>
-                  <!-- ko if: $data.latestVersion && $data.latestVersion != $data.info.version -->
-                  <!-- ko if: $data.git -->
-                  <a href="#" data-bind="click: () => $parent.kccpUpdateGitMod($data)" title="update available">
-                    <span data-bind="text: `v${latestVersion} available!`" class="badge badge-info"></span> 
-                  </a>
-                  <!-- /ko -->
-                  <!-- ko if: !$data.git -->
-                  <a href="#" data-bind="click: () => chrome.tabs.create({url: info.url})" title="update available">
-                    <span data-bind="text: `v${latestVersion} available!`" class="badge badge-info"></span> 
-                  </a>
-                  <!-- /ko -->
-                  <!-- /ko -->
-                  <!-- /ko -->
-                  <!-- ko if: $data.git -->
-                  <span class="subtext badge badge-secondary">git</span>
-                  <!-- /ko -->
-                  <!-- ko if: !$data.git -->
-                  <!--<span class="subtext badge badge-secondary">local</span>-->
-                  <!-- /ko -->
-                </div>
-                <!-- ko if: $data.info -->
-                <span class="subtext" data-bind="text: info.authors.join(', ')"></span>
-                <!-- /ko -->
-              </div>
-              <div class="controls">
-                <!-- ko if: $index() > 0 -->
-                <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: () => $parent.kccpMoveMod($data.path, -1)" title="move up in list"><i class="fa-solid fa-arrow-up"></i></button>
-                <!-- /ko -->
-                <!-- ko if: $index() < $parent.kccpConfig.modInfo().length-1 -->
-                <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: () => $parent.kccpMoveMod($data.path, 1)" title="move down in list"><i class="fa-solid fa-arrow-down"></i></button>
-                <!-- /ko -->
-                <!-- ko if: $data.info -->
-                <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: () => chrome.tabs.create({url: info.url})" title="web site"><i class="fa-solid fa-globe"></i></button>
-                <!-- /ko -->
-                <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: () => $parent.kccpOpenModFolder($data)" title="open folder"><i class="fa-regular fa-folder-open"></i></button>
-                <button type="button" class="btn btn-outline-danger btn-sm" data-bind="click: () => $parent.kccpRemoveMod($data.path)" title="remove"><i class="fa-regular fa-trash-can"></i></button>
-              </div>
-            </div>
-            <!-- /ko -->
-          </div>
-          <!-- ko if: addingKccpGitMod() -->
-          <div class="form-group mt-3 input-group">
-            <input id="gitmodurl" type="text" class="form-control" data-bind="value: kccpGitModUrl" placeholder="Git mod URL">
-            <div class="input-group-append">
-              <button type="button" class="btn btn-primary" data-bind="click: () => kccpAddGitMod()">Add from git</button>
-              <button type="button" class="btn btn-secondary" data-bind="click: kccpCancelAddGitMod">Cancel</button>
-            </div>
-          </div>
-          <!-- /ko -->
-          <div class="form-group mt-3">
-            <!-- ko if: !addingKccpGitMod() -->
-            <button type="button" class="btn btn-secondary" data-bind="click: kccpBeginAddGitMod">Add from git</button>
-            <!-- /ko -->
-            <button type="button" class="btn btn-secondary" data-bind="click: kccpAddMod">Add from disk</button>
-            <button type="button" class="btn btn-secondary" data-bind="click: kccpReloadMods">Reload mod data</button>
-            <button type="button" class="btn btn-secondary" data-bind="click: kccpPrepatchAssets">Pre-patch ALL assets</button>
-          </div>
-          <h6>Advanced tools</h6>
-          <div class="form-group">
-            <button type="button" class="btn btn-secondary" data-bind="click: kccpExtractSpritesheet">Extract spritesheet</button>
-            <button type="button" class="btn btn-secondary" data-bind="click: kccpMakeOutlines">Make outlines</button>
-            <button type="button" class="btn btn-secondary" data-bind="click: kccpConvertFromPoi">Convert from poi</button>
-          </div>
-        </div>
-        <h6>Get asset mods</h6>
-        <div class="settings-group">
-          <div class="form-group">
-            <ul>
-              <!-- ko foreach: getMods -->
-              <li class="mb-2"><a data-bind="attr: { href: url }, text: name" target="_blank"></a> by <span data-bind="text: authors.join(', ')" /> <button type="button" class="btn btn-secondary ml-2" data-bind="click: () => $parent.kccpAddGitMod($data.url)">Install</button></li>
-              <!-- /ko -->
-            </ul>
-          </div>
-        </div>
-        <!-- /ko -->
-        <!-- /ko -->
-        <!-- ko if: kccpTab() == kccpTabs.log -->
-        <div class="settings-group">
-          <div id="kccp-log-scroller" class="log-scroller">
-            <ul>
-              <!-- ko foreach: kccpLogRecent -->
-              <li>
-                <small>
-                  <span data-bind="text: $data[2], attr: { class: `badge badge-${$parent.badgeClasses[$data[2]]}` }"></span>
-                  <!-- ko foreach: $data.slice(3) -->
-                  <span data-bind="text: $data"></span>
-                  <!-- /ko -->
-                </small>
-              </li>
-              <!-- /ko -->
-            </ul>
-          </div>
-        </div>
-        <!-- /ko -->
-      </div>
-      <!-- /ko -->
     </script>
 
     <script type="text/html" id="settings-content-3">

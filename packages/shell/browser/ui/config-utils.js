@@ -108,18 +108,12 @@ const configSchema = {
     enable: { type: 'bool', default: false },
     mode: {
       type: 'option',
-      options: ['kccp-external', 'kccp-internal', 'all-external', 'http-proxy', 'socks5-proxy'],
-      default: 'kccp-external',
-    },
-    method: {
-      type: 'option',
-      options: ['https-mitm', 'path', 'header'],
-      default: 'path',
+      options: ['http-proxy', 'socks5-proxy'],
+      default: 'http-proxy',
     },
     client: {
       host: { type: 'string', default: '127.0.0.1' },
       port: { type: 'number', default: 8081 },
-      httpsPort: { type: 'number', default: 8082 },
     },
   },
   version: { type: 'string', default: '0.10.0' },

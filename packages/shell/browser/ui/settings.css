@@ -119,20 +119,11 @@
   overflow-y: auto;
   max-height: 300px;
 }
-.log-scroller {
-  overflow-y: auto;
-  max-height: 500px;
-}
-.log-scroller li,
 .form-array-string-item {
   margin-bottom: 4px;
   display: flex;
   flex-direction: row;
   align-items: baseline;
-}
-.log-scroller li span:not(:first-child) {
-  overflow-wrap: anywhere;
-  user-select: text !important;
 }
 .form-array-string-item label {
   padding-right: 8px;
@@ -170,7 +161,6 @@
   column-gap: 20px;
 }
 
-.kccp-mod,
 .download-item {
   padding: 6px;
   margin-bottom: 0;
@@ -182,32 +172,26 @@
 .download-item label {
   cursor: pointer;
 }
-.kccp-mod,
 .download-info {
   display: flex;
   padding-left: 4px;
 }
-.kccp-mod:hover,
 .download-item:hover {
   background: var(--content-hover-color);
 }
-.kccp-mod .kccp-mod-label,
 .download-item .download-label {
   font-size: small;
   flex-grow: 1;
   display: flex;
   flex-direction: column;
 }
-.kccp-mod .kccp-mod-label label,
 .download-item .download-label label {
   margin: 0;
 }
-.kccp-mod .controls,
 .download-item .controls {
   display: flex;
   flex-wrap: nowrap;
 }
-.kccp-mod button,
 .download-item button {
   margin-left: 2px;
   width: 28px;
@@ -215,7 +199,6 @@
   font-size: 8pt;
   display: none;
 }
-.kccp-mod:hover button,
 .download-item:hover button {
   display: inline;
 }
