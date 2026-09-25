@@ -185,7 +185,7 @@ class KC3Updater {
           try {
             if (fs.existsSync(dir)) {
               try {
-                fs.rmdirSync(dir, { recursive: true, force: true })
+                fs.rmSync(dir, { recursive: true, force: true })
               } catch (err) {}
             }
             try {

@@ -261,7 +261,9 @@ class Settings {
       console.error('Custom kc3 channel not selected.')
       return
     }
-    const result = await sendToMain('kc3-select-custom-location')
+    const result = await sendToMain('kc3-select-custom-location', {
+      defaultPath: this.config.kc3kai[`${channel}Location`](),
+    })
     if (result.canceled || !result.filePaths.length) return
     const path = result.filePaths[0]
     console.log('Selected kc3 path', path)
@@ -277,7 +279,9 @@ class Settings {
       console.error('Custom data location not selected.')
       return
     }
-    const result = await sendToMain('select-custom-data-location')
+    const result = await sendToMain('select-custom-data-location', {
+      defaultPath: this.config.app.data.customPath(),
+    })
     if (result.canceled || !result.filePaths.length) return
     const path = result.filePaths[0]
     console.log('Selected data path', path)

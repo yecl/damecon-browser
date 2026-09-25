@@ -1,23 +1,24 @@
-const { BrowserView } = require('electron')
+const { WebContentsView } = require('electron')
 
-let topBarHeight = 64
+// Top bar height per window (windows can show/hide the address bar independently)
+const topBarHeights = new WeakMap()
 
 class Tab {
   constructor(parentWindow, webContentsViewOptions = {}, searchPageUrl) {
     // needed because browserwindow events don't bind this correctly
     this.updateLayout = this.updateLayout.bind(this)
 
-    this.view = new BrowserView()
+    this.view = new WebContentsView()
     this.id = this.view.webContents.id
     this.window = parentWindow
     this.webContents = this.view.webContents
-    this.window.addBrowserView(this.view)
+    this.window.contentView.addChildView(this.view)
     this.visible = false
 
     this.searchInput = ''
     this.searchVisible = false
-    this.searchView = new BrowserView()
-    this.window.addBrowserView(this.searchView)
+    this.searchView = new WebContentsView()
+    this.window.contentView.addChildView(this.searchView)
     this.searchView.webContents.loadURL(searchPageUrl)
     //this.searchView.webContents.openDevTools({ mode: 'detach', activate: true })
 
@@ -34,8 +35,8 @@ class Tab {
 
     this.hide()
 
-    this.window.removeBrowserView(this.searchView)
-    this.window.removeBrowserView(this.view)
+    this.window.contentView.removeChildView(this.searchView)
+    this.window.contentView.removeChildView(this.view)
     this.window = undefined
 
     if (!this.webContents.isDestroyed()) {
@@ -50,7 +51,6 @@ class Tab {
     }
 
     this.webContents = undefined
-    this.view.webContents.destroy()
     this.view = undefined
     this.searchView.webContents.destroy()
     this.searchView = undefined
@@ -69,7 +69,6 @@ class Tab {
 
   hide() {
     //console.log('>> tab.hide()', this.id)
-    //this.stopResizeListener()
     this.visible = false
     this.updateLayout()
   }
@@ -82,7 +81,8 @@ class Tab {
   updateLayout(headerHeight = 0) {
     const { width, height } = this.window.getContentBounds()
     const padding = 0
-    if (headerHeight > 0) topBarHeight = headerHeight
+    if (headerHeight > 0) topBarHeights.set(this.window, headerHeight)
+    const topBarHeight = topBarHeights.get(this.window) ?? 64
 
     if (this.visible) {
       const searchBaseWidth = 300
@@ -105,7 +105,6 @@ class Tab {
         width: finalWidth,
         height: finalHeight,
       })
-      this.view.setAutoResize({ width: true, height: true })
 
       if (this.searchVisible) {
         const searchWidth = finalWidth <= searchSnapWidth ? finalWidth : searchBaseWidth
@@ -121,20 +120,10 @@ class Tab {
         this.webContents.stopFindInPage('clearSelection')
       }
     } else {
-      this.view.setAutoResize({ width: false, height: false })
       this.view.setBounds({ x: 0, y: 0, width: 0, height: 0 })
       this.searchView.setBounds({ x: 0, y: 0, width: 0, height: 0 })
     }
     //this.searchView.setBorderRadius(8)
-  }
-
-  // Replacement for BrowserView.setAutoResize. This could probably be better...
-  startResizeListener() {
-    this.stopResizeListener()
-    //this.window.on('resize', this.updateLayout)
-  }
-  stopResizeListener() {
-    //this.window.off('resize', this.updateLayout)
   }
 
   async setFindInPageVisible(visible) {

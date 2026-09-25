@@ -8,6 +8,10 @@ enum CookieStoreID {
 
 const onChangedCauseTranslation: { [key: string]: string } = {
   'expired-overwrite': 'expired_overwrite',
+  // Electron >= 41 reports sets as 'inserted*'; Chrome calls them 'explicit'
+  inserted: 'explicit',
+  'inserted-no-change-overwrite': 'explicit',
+  'inserted-no-value-change-overwrite': 'explicit',
 }
 
 const createCookieDetails = (cookie: Electron.Cookie): chrome.cookies.Cookie => ({

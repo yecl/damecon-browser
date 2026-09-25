@@ -1,6 +1,6 @@
 {
   "name": "electron-chrome-extensions",
-  "version": "4.8.0",
+  "version": "4.9.0",
   "description": "Chrome extension support for Electron",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.mjs",
@@ -39,8 +39,7 @@
   "author": "Samuel Maddock <sam@samuelmaddock.com>",
   "license": "SEE LICENSE IN LICENSE.md",
   "dependencies": {
-    "debug": "^4.4.1",
-    "electron-dl": "^4.0.0"
+    "debug": "^4.4.1"
   },
   "devDependencies": {
     "@types/chai": "^5.2.2",
@@ -50,7 +49,7 @@
     "chai": "^5.2.1",
     "chai-as-promised": "^8.0.1",
     "colors": "^1.4.0",
-    "electron": "^25.0.0",
+    "electron": "44.4.5",
     "esbuild": "^0.25.6",
     "minimist": "^1.2.8",
     "mocha": "^11.7.1",

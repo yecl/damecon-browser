@@ -162,11 +162,9 @@ class WebUI {
     const resizeObserver = new ResizeObserver(async (entries) => {
       for (const entry of entries) {
         const height = entry.devicePixelContentBoxSize[0].blockSize
-        const factor = window.devicePixelRatio
         if (height != this.topbarHeight) {
           this.topbarHeight = height
           await this.sendTopbarSize()
-          await this.sendToMain('webui-zoom-changed', { height, factor })
         }
       }
     })

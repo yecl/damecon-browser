@@ -99,7 +99,7 @@ async function readNativeMessagingHostConfig(
 }
 export class NativeMessagingHost {
   private process?: ReturnType<typeof spawn>
-  private sender: ExtensionSender
+  private sender?: ExtensionSender
   private connectionId: string
   private connected: boolean = false
   private pending?: any[]
@@ -125,16 +125,16 @@ export class NativeMessagingHost {
   }
 
   destroy() {
-    if (!this.connected) return
     this.connected = false
     if (this.process) {
       this.process.kill()
       this.process = undefined
     }
-    if (this.keepAlive) {
+    if (this.keepAlive && this.sender) {
       this.sender.ipc.off(`crx-native-msg-${this.connectionId}`, this.receiveExtensionMessage)
       this.sender.send(`crx-native-msg-${this.connectionId}-disconnect`)
     }
+    this.sender = undefined
   }
 
   private async launch(application: string, extensionId: string) {
@@ -217,7 +217,7 @@ export class NativeMessagingHost {
     const length = data.readUInt32LE(0)
     const message = JSON.parse(data.subarray(4, 4 + length).toString())
     d('receive: %s', message)
-    if (this.keepAlive) {
+    if (this.keepAlive && this.sender) {
       this.sender.send(`crx-native-msg-${this.connectionId}`, message)
     } else {
       this.resolveResponse?.(message)

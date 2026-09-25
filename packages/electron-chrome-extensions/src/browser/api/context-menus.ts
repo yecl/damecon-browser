@@ -89,7 +89,8 @@ export class ContextMenusAPI {
     handle('contextMenus.remove', this.remove)
     handle('contextMenus.removeAll', this.removeAll)
 
-    this.ctx.session.on('extension-unloaded', (event, extension) => {
+    const sessionExtensions = ctx.session.extensions || ctx.session
+    sessionExtensions.on('extension-unloaded', (event, extension) => {
       if (this.menus.has(extension.id)) {
         this.menus.delete(extension.id)
       }
@@ -160,7 +161,11 @@ export class ContextMenusAPI {
         opts.submenu.forEach((item) => submenu.append(buildFromTemplate(item)))
         opts.submenu = submenu
       }
-      return new MenuItem(opts)
+      return new MenuItem({
+        ...opts,
+        // Force submenu type when submenu items are present
+        type: opts.type === 'normal' && opts.submenu ? 'submenu' : opts.type,
+      })
     }
 
     // Build all final MenuItems in-order
@@ -189,8 +194,10 @@ export class ContextMenusAPI {
       documentUrl: params.frameURL || params.pageURL,
     }
 
+    const sessionExtensions = this.ctx.session.extensions || this.ctx.session
+
     for (const [extensionId, propItems] of this.menus) {
-      const extension = this.ctx.session.getExtension(extensionId)
+      const extension = sessionExtensions.getExtension(extensionId)
       if (!extension) continue
 
       const extensionMenuItemOptions: ContextItemConstructorOptions[] = []
@@ -238,8 +245,11 @@ export class ContextMenusAPI {
 
         menuItemOptions = [...menuItemOptions, groupMenuItemOptions, ...children]
       } else if (extensionMenuItemOptions.length > 0) {
-        // Set all children to show icon
-        const children = extensionMenuItemOptions.map((opt) => ({ ...opt, showIcon: true }))
+        // Set all top-level children to show icon
+        const children = extensionMenuItemOptions.map((opt) => ({
+          ...opt,
+          showIcon: !opt.props.parentId,
+        }))
         menuItemOptions = [...menuItemOptions, ...children]
       }
     }
@@ -253,7 +263,8 @@ export class ContextMenusAPI {
     menuType: ContextMenuType,
   ): Electron.MenuItem[] {
     const extensionItems = this.menus.get(extensionId)
-    const extension = this.ctx.session.getExtension(extensionId)
+    const sessionExtensions = this.ctx.session.extensions || this.ctx.session
+    const extension = sessionExtensions.getExtension(extensionId)
     const activeTab = this.ctx.store.getActiveTabFromWebContents(event.sender)
 
     const menuItemOptions = []

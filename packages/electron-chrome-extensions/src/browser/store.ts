@@ -1,16 +1,15 @@
-import { BrowserWindow, WebContents, webContents } from 'electron'
+import { BrowserWindow, webContents } from 'electron'
 import { EventEmitter } from 'node:events'
 import { ContextMenuType } from './api/common'
 import { ChromeExtensionImpl } from './impl'
-import { ExtensionEvent } from './router'
+import { ExtensionEvent, ExtensionSender } from './router'
 
 export class ExtensionStore extends EventEmitter {
   /** Tabs observed by the extensions system. */
   tabs = new Set<Electron.WebContents>()
 
   /** Windows observed by the extensions system. */
-  windows = new Set<Electron.BrowserWindow>()
-  // Electron.BaseWindow // Electron 35
+  windows = new Set<Electron.BaseWindow>()
 
   lastFocusedWindowId?: number
 
@@ -20,18 +19,10 @@ export class ExtensionStore extends EventEmitter {
    * It's not possible to access the parent of a BrowserView so we must manage
    * this ourselves.
    */
-  tabToWindow = new WeakMap<
-    Electron.WebContents,
-    // Electron.BaseWindow // Electron 35
-    Electron.BrowserWindow
-  >()
+  tabToWindow = new WeakMap<Electron.WebContents, Electron.BaseWindow>()
 
   /** Map of windows to their active tab. */
-  private windowToActiveTab = new WeakMap<
-    Electron.BrowserWindow,
-    // Electron.BaseWindow // Electron 35
-    Electron.WebContents
-  >()
+  private windowToActiveTab = new WeakMap<Electron.BaseWindow, Electron.WebContents>()
 
   tabDetailsCache = new Map<number, Partial<chrome.tabs.Tab>>()
   windowDetailsCache = new Map<number, Partial<chrome.windows.Window>>()
@@ -52,24 +43,24 @@ export class ExtensionStore extends EventEmitter {
     return this.lastFocusedWindowId ? this.getWindowById(this.lastFocusedWindowId) : null
   }
 
-  getWindowFromWebContents(wc: WebContents) {
+  getWindowFromWebContents(wc: ExtensionSender) {
     // https://developer.chrome.com/docs/extensions/reference/api/windows#the_current_window
     // The current window is the window that contains the code that is currently executing.
     // It's important to realize that this can be different from the topmost or focused window.
-    const fallback = wc.mainFrame.url.endsWith('_generated_background_page.html')
-      ? this.getLastFocusedWindow()
-      : undefined
-    const window = BrowserWindow.fromWebContents(wc) || fallback
+    // Windowless contexts (MV3 service worker, MV2 background page) use the last focused window.
+    if (!('mainFrame' in wc) || wc.mainFrame.url.endsWith('_generated_background_page.html')) {
+      const win = this.getLastFocusedWindow()
+      if (!win) throw new Error('No focused window')
+      return win
+    }
+    const window = BrowserWindow.fromWebContents(wc)
     if (!window) throw new Error("event spawned from a window that doesn't exist?")
     const result = this.getWindowById(window.id)
     if (!result) throw new Error(`Couldn't retrieve stored window data for windowId ${window.id}`)
     return result
   }
 
-  addWindow(
-    window: Electron.BrowserWindow,
-    // Electron.BaseWindow // Electron 35
-  ) {
+  addWindow(window: Electron.BaseWindow) {
     if (this.windows.has(window)) return
 
     this.windows.add(window)
@@ -93,17 +84,14 @@ export class ExtensionStore extends EventEmitter {
     return win
   }
 
-  beforeRemoveWindow(window: Electron.BrowserWindow) {
+  beforeRemoveWindow(window: Electron.BaseWindow) {
     if (typeof this.impl.beforeRemoveWindow === 'function') {
       return this.impl.beforeRemoveWindow(window)
     }
     return true
   }
 
-  async removeWindow(
-    window: Electron.BrowserWindow,
-    // Electron.BaseWindow // Electron 35
-  ) {
+  async removeWindow(window: Electron.BaseWindow) {
     if (!this.windows.has(window)) return
 
     this.windows.delete(window)
@@ -119,11 +107,7 @@ export class ExtensionStore extends EventEmitter {
     return Array.from(this.tabs).find((tab) => !tab.isDestroyed() && tab.id === tabId)
   }
 
-  addTab(
-    tab: Electron.WebContents,
-    window: Electron.BrowserWindow,
-    // Electron.BaseWindow // Electron 35
-  ) {
+  addTab(tab: Electron.WebContents, window: Electron.BaseWindow) {
     if (this.tabs.has(tab)) return
 
     this.tabs.add(tab)
@@ -215,16 +199,16 @@ export class ExtensionStore extends EventEmitter {
     return tab
   }
 
-  getActiveTabFromWindow(
-    win: Electron.BrowserWindow,
-    // Electron.BaseWindow // Electron 35
-  ) {
+  getActiveTabFromWindow(win: Electron.BaseWindow) {
     const activeTab = win && !win.isDestroyed() && this.windowToActiveTab.get(win)
     return (activeTab && !activeTab.isDestroyed() && activeTab) || undefined
   }
 
-  getActiveTabFromWebContents(wc: Electron.WebContents): Electron.WebContents | undefined {
-    const win = this.tabToWindow.get(wc) || BrowserWindow.fromWebContents(wc)
+  getActiveTabFromWebContents(wc: ExtensionSender): Electron.WebContents | undefined {
+    const win =
+      'mainFrame' in wc
+        ? this.tabToWindow.get(wc) || BrowserWindow.fromWebContents(wc)
+        : this.getLastFocusedWindow() // service worker has no window
     const activeTab = win ? this.getActiveTabFromWindow(win) : undefined
     return activeTab
   }

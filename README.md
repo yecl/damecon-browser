@@ -22,6 +22,8 @@ Seriously, I've literally never worked with Electron before. There's some real s
 
 ### From a Release build:
 
+Requires Windows 10 or later, or macOS 13 (Ventura) or later.
+
 From the [Releases page](https://github.com/planetarian/damecon-browser/releases/latest), download one of the following:
 
 Installer: `damecon-browser-*.Setup.exe`
@@ -35,6 +37,8 @@ Alternatively, use the zip file: `damecon-browser-*.zip`
 - This lets you use specific versions if desired, but lacks automatic updates.
 
 ### From source code, using `yarn`:
+
+Requires Node.js 22 (22.12 or later).
 
 ```bash
 # Get the code
@@ -51,7 +55,10 @@ yarn start
 Unpacked extensions inside `./extensions` will be loaded automatically.
 
 - Supports both Manifest V2 and V3 extensions.
-- Some/many plugins may not run properly (or at all) due to various extension APIs being unsupported.
+- Some/many plugins may not run properly (or at all) due to various extension APIs being unsupported. Known gaps:
+  - `chrome.proxy` (proxy switchers such as ZeroOmega); use Damecon's own proxy settings instead.
+  - Static `declarativeNetRequest` rulesets (e.g. Kantai3D) and `webRequest.onAuthRequired`.
+  - Extension pages inside DevTools (such as KC3's panel) and extension pages embedded in iframes only get Electron's built-in `chrome.*` APIs (no `tabs`, `windows`, `downloads`, ...).
 
 There are a few plugins bundled with the Release builds for your convenience. It is safe to remove them if you wish (just delete from the `extensions` folder).
 

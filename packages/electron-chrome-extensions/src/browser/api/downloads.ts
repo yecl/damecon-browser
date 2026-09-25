@@ -2,7 +2,6 @@ import { ExtensionContext } from '../context'
 import { ExtensionEvent } from '../router'
 import { getAllWindows, matchesPattern, matchesTitlePattern, TabContents } from './common'
 import { WindowsAPI } from './windows'
-import { download } from 'electron-dl'
 import { app, BrowserWindow, dialog, shell, DownloadItem, DownloadURLOptions } from 'electron'
 import path from 'path'
 import debug from 'debug'
@@ -254,7 +253,7 @@ export class DownloadsAPI {
       opts.headers = {}
       for (const header of options.headers) opts.headers[header.name] = header.value
     }
-    event.sender.session.downloadURL(options.url, opts)
+    this.ctx.session.downloadURL(options.url, opts)
   }
 
   private erase(event: ExtensionEvent, query: chrome.downloads.DownloadQuery) {

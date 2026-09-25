@@ -1,6 +1,6 @@
 import { promises as fs } from 'node:fs'
 import * as path from 'node:path'
-import { BrowserWindow, nativeImage } from 'electron'
+import { BaseWindow, BrowserWindow, nativeImage } from 'electron'
 
 export interface TabContents extends Electron.WebContents {
   favicon?: string
@@ -41,6 +41,41 @@ export const getExtensionUrl = (extension: Electron.Extension, uri: string) => {
   try {
     return new URL(uri, extension.url).href
   } catch {}
+}
+
+function isValidHttpUrl(input: string) {
+  let url
+  try {
+    url = new URL(input)
+  } catch (e) {
+    return false
+  }
+  return url.protocol === 'http:' || url.protocol === 'https:'
+}
+
+export const validateExtensionUrl = (url: string, extension: Electron.Extension) => {
+  // Convert relative URLs to absolute if needed
+  try {
+    if (
+      extension.name === 'WebUI' &&
+      !url.startsWith('chrome-extension://') &&
+      !url.startsWith('chrome:') &&
+      !isValidHttpUrl(url)
+    ) {
+      url = 'http://' + url
+    } else {
+      url = new URL(url, extension.url).href
+    }
+  } catch (e) {
+    throw new Error('Invalid URL')
+  }
+
+  // Damecon allows chrome: pages (e.g. typed into the WebUI address bar)
+  if (url.startsWith('javascript:')) {
+    throw new Error('Invalid URL')
+  }
+
+  return url
 }
 
 export const resolveExtensionPath = (
@@ -134,7 +169,4 @@ export const matchesTitlePattern = (pattern: string, title: string) => {
   return title.match(regexp)
 }
 
-export const getAllWindows = () => [
-  // ...BaseWindow.getAllWindows(), // Electron 35
-  ...BrowserWindow.getAllWindows(),
-]
+export const getAllWindows = () => [...BaseWindow.getAllWindows(), ...BrowserWindow.getAllWindows()]

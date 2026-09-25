@@ -127,6 +127,8 @@ export async function loadAllExtensions(
     filterCallback?: (extension: ExtensionPathInfo) => boolean
   } = {},
 ) {
+  const sessionExtensions = session.extensions || session
+
   let extensions = await discoverExtensions(extensionsPath)
   extensions = filterOutdatedExtensions(extensions)
   d('discovered %d extension(s) in %s', extensions.length, extensionsPath)
@@ -149,16 +151,16 @@ export async function loadAllExtensions(
         }
       }
       if (ext.type === 'store') {
-        const existingExt = session.getExtension(ext.id)
+        const existingExt = sessionExtensions.getExtension(ext.id)
         if (existingExt) {
           d('skipping loading existing extension %s', ext.id)
           continue
         }
         d('loading extension %s', `${ext.id}@${ext.manifest.version}`)
-        extension = await session.loadExtension(ext.path)
+        extension = await sessionExtensions.loadExtension(ext.path)
       } else if (options.allowUnpacked) {
         d('loading unpacked extension %s', ext.path)
-        extension = await session.loadExtension(ext.path)
+        extension = await sessionExtensions.loadExtension(ext.path)
       }
 
       if (
@@ -166,14 +168,10 @@ export async function loadAllExtensions(
         extension.manifest.manifest_version === 3 &&
         extension.manifest.background?.service_worker
       ) {
-        throw new Error('Manifest V3 extensions with Service Workers are not currently supported.')
-
-        /*
         const scope = `chrome-extension://${extension.id}`
         await session.serviceWorkers.startWorkerForScope(scope).catch(() => {
           console.error(`Failed to start worker for extension ${extension.id}`)
         })
-        */ // Electron 35
       }
     } catch (error) {
       console.error(`Failed to load extension from ${ext.path}`)

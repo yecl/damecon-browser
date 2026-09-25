@@ -1,3 +1,4 @@
+import { EventEmitter } from 'node:events'
 import { BrowserWindow, Session } from 'electron'
 import { getAllWindows } from './api/common'
 import debug from 'debug'
@@ -14,7 +15,7 @@ export interface PopupAnchorRect {
 interface PopupViewOptions {
   extensionId: string
   session: Session
-  parent: Electron.BrowserWindow // BaseWindow // Electron 35
+  parent: Electron.BaseWindow
   url: string
   anchorRect: PopupAnchorRect
   alignment?: string
@@ -25,7 +26,7 @@ const supportsPreferredSize = () => {
   return major >= 12
 }
 
-export class PopupView {
+export class PopupView extends EventEmitter {
   static POSITION_PADDING = 5
 
   static BOUNDS = {
@@ -36,7 +37,7 @@ export class PopupView {
   }
 
   browserWindow?: BrowserWindow
-  parent?: Electron.BrowserWindow // BaseWindow // Electron 35
+  parent?: Electron.BaseWindow
   extensionId: string
 
   private anchorRect: PopupAnchorRect
@@ -50,6 +51,8 @@ export class PopupView {
   private readyPromise: Promise<void>
 
   constructor(opts: PopupViewOptions) {
+    super()
+
     this.parent = opts.parent
     this.extensionId = opts.extensionId
     this.anchorRect = opts.anchorRect
@@ -58,10 +61,12 @@ export class PopupView {
     this.browserWindow = new BrowserWindow({
       show: false,
       frame: false,
-      parent: opts.parent as BrowserWindow, // Electron 35
+      parent: opts.parent,
       movable: false,
       maximizable: false,
       minimizable: false,
+      // https://github.com/electron/electron/issues/47579
+      fullscreenable: false,
       resizable: false,
       skipTaskbar: true,
       backgroundColor: '#ffffff',
@@ -171,13 +176,17 @@ export class PopupView {
       Math.min(PopupView.BOUNDS.maxHeight, Math.max(rect.height || 0, PopupView.BOUNDS.minHeight)),
     )
 
-    d(`setSize`, { width, height })
+    const size = { width, height }
+    d(`setSize`, size)
+
+    this.emit('will-resize', size)
 
     this.browserWindow?.setBounds({
       ...this.browserWindow.getBounds(),
-      width,
-      height,
+      ...size,
     })
+
+    this.emit('resized')
   }
 
   private maybeClose = () => {
@@ -202,27 +211,44 @@ export class PopupView {
     if (!this.browserWindow || !this.parent) return
 
     const winBounds = this.parent.getBounds()
+    const winContentBounds = this.parent.getContentBounds()
+    const nativeTitlebarHeight = winBounds.height - winContentBounds.height
+
     const viewBounds = this.browserWindow.getBounds()
 
     let x = winBounds.x + this.anchorRect.x + this.anchorRect.width - viewBounds.width
-    let y = winBounds.y + this.anchorRect.y + this.anchorRect.height + PopupView.POSITION_PADDING
+    let y =
+      winBounds.y +
+      nativeTitlebarHeight +
+      this.anchorRect.y +
+      this.anchorRect.height +
+      PopupView.POSITION_PADDING
 
     // If aligned to a differently then we need to offset the popup position
     if (this.alignment?.includes('right')) x = winBounds.x + this.anchorRect.x
     if (this.alignment?.includes('top'))
-      y = winBounds.y - viewBounds.height + this.anchorRect.y - PopupView.POSITION_PADDING
+      y =
+        winBounds.y +
+        nativeTitlebarHeight -
+        viewBounds.height +
+        this.anchorRect.y -
+        PopupView.POSITION_PADDING
 
     // Convert to ints
     x = Math.floor(x)
     y = Math.floor(y)
 
-    d(`updatePosition`, { x, y })
+    const position = { x, y }
+    d(`updatePosition`, position)
+
+    this.emit('will-move', position)
 
     this.browserWindow.setBounds({
       ...this.browserWindow.getBounds(),
-      x,
-      y,
+      ...position,
     })
+
+    this.emit('moved')
   }
 
   /** Backwards compat for Electron <12 */

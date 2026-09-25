@@ -1,13 +1,11 @@
 import { ExtensionContext } from '../context'
 import { ExtensionEvent } from '../router'
+import { validateExtensionUrl } from './common'
 import debug from 'debug'
 
 const d = debug('electron-chrome-extensions:windows')
 
-const getWindowState = (
-  win: Electron.BrowserWindow,
-  //.BaseWindow // Electron 35
-): chrome.windows.Window['state'] => {
+const getWindowState = (win: Electron.BaseWindow): chrome.windows.Window['state'] => {
   if (win.isMaximized()) return 'maximized'
   if (win.isMinimized()) return 'minimized'
   if (win.isFullScreen()) return 'fullscreen'
@@ -53,10 +51,7 @@ export class WindowsAPI {
     d(`Observing window[${windowId}]`)
   }
 
-  private createWindowDetails(
-    win: Electron.BrowserWindow,
-    //.BaseWindow // Electron 35
-  ) {
+  private createWindowDetails(win: Electron.BaseWindow) {
     const details: Partial<chrome.windows.Window> = {
       id: win.id,
       focused: win.isFocused(),
@@ -82,10 +77,7 @@ export class WindowsAPI {
     return details
   }
 
-  private getWindowDetails(
-    win: Electron.BrowserWindow,
-    //.BaseWindow // Electron 35
-  ) {
+  private getWindowDetails(win: Electron.BaseWindow) {
     if (this.ctx.store.windowDetailsCache.has(win.id)) {
       return this.ctx.store.windowDetailsCache.get(win.id)
     }
@@ -122,6 +114,11 @@ export class WindowsAPI {
   }
 
   private async create(event: ExtensionEvent, details: chrome.windows.CreateData) {
+    if (details.url) {
+      const urls = Array.isArray(details.url) ? details.url : [details.url]
+      const resolved = urls.map((u) => validateExtensionUrl(u, event.extension))
+      details = { ...details, url: Array.isArray(details.url) ? resolved : resolved[0] }
+    }
     const win = await this.ctx.store.createWindow(event, details)
     return this.getWindowDetails(win)
   }

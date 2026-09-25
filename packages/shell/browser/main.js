@@ -5,7 +5,6 @@ import {
   session,
   BrowserWindow,
   Notification,
-  globalShortcut,
   ipcMain,
   nativeTheme,
   dialog,
@@ -170,6 +169,14 @@ if (gpuConfig.nativeBuffers) app.commandLine.appendSwitch('enable-native-gpu-mem
 if (gpuConfig.compositorResources)
   app.commandLine.appendSwitch('enable-gpu-memory-buffer-compositor-resources')
 app.commandLine.appendSwitch('enable-experimental-web-platform-features')
+// Since Chromium 120 (Electron 28) chrome-extension:// frames inside DevTools (KC3's panel)
+// get a partitioned localStorage that KC3's background page can't see.
+// Only the last --disable-features switch counts, so merge with any existing value.
+const disabledFeatures = new Set(
+  app.commandLine.getSwitchValue('disable-features').split(',').filter(Boolean),
+)
+disabledFeatures.add('ThirdPartyStoragePartitioning')
+app.commandLine.appendSwitch('disable-features', [...disabledFeatures].join(','))
 
 //app.userAgentFallback = app.userAgentFallback.replace(' Electron/' + process.versions.electron, '');
 // Shorten 'Electron' so we can bypass Google's "Unsecure" browser block without losing version information
@@ -252,7 +259,7 @@ if (isSquirrel) {
       if (info.isFile()) return
       console.log('Removing', entry)
       try {
-        fsSync.rmdirSync(entryPath, { recursive: true })
+        fsSync.rmSync(entryPath, { recursive: true, force: true })
       } catch (error) {
         console.log(`Couldn't remove old version ${version}:`, error)
       }
@@ -381,7 +388,6 @@ function getMemory() {
 
 class Browser extends EventEmitter {
   windows = []
-  currentWindowId = null
   currentKc3ExtensionId = null
   kc3IsUpdating = false
   isProxyEnabled = false
@@ -401,8 +407,11 @@ class Browser extends EventEmitter {
 
     app.whenReady().then(this.init.bind(this))
 
+    // Our window 'close' handler always prevents the close, which cancels a quit in progress
+    // once more than one window is open, so finish the quit here.
+    app.on('before-quit', () => (this.quitting = true))
     app.on('window-all-closed', () => {
-      if (process.platform !== 'darwin') {
+      if (process.platform !== 'darwin' || this.quitting) {
         this.destroy()
       }
     })
@@ -485,45 +494,11 @@ class Browser extends EventEmitter {
     this.initSession()
     setupMenu(this)
 
-    app.on('browser-window-focus', () => {
-      const fWin = () => this.getFocusedWindow()
-      const fTab = () => fWin().getFocusedTab()
-      const fWc = () => fTab().webContents
-
-      this.currentWindowId = fWin().window.id
-
-      globalShortcut.registerAll(['CmdOrCtrl+T'], () => fWin().tabs.create())
-      globalShortcut.registerAll(['CmdOrCtrl+N'], () =>
-        this.createTabbedWindow({ initialUrls: [settingsUrl, newTabUrl] }),
-      )
-      globalShortcut.registerAll(['CmdOrCtrl+R', 'F5'], () => fWc().reload())
-      globalShortcut.registerAll(['CmdOrCtrl+Shift+R', 'CmdOrCtrl+F5'], () =>
-        fWc().reloadIgnoringCache(),
-      )
-      globalShortcut.registerAll(['CmdOrCtrl+W', 'CmdOrCtrl+F4'], () =>
-        this.confirmCloseTab(fTab().id),
-      )
-      globalShortcut.registerAll(['F3', 'CmdOrCtrl+F'], () =>
-        this.setFindInPageVisible(fTab().id, true),
-      )
-      globalShortcut.registerAll(['Escape'], () => this.setFindInPageVisible(fTab().id, false))
-      globalShortcut.registerAll(['Alt+A'], () => this.toggleAddressBar(fTab().id))
-      globalShortcut.registerAll(['Alt+D'], () => this.focusAddressBar(fTab().id))
-      globalShortcut.registerAll(['CmdOrCtrl+Tab'], () => this.nextTab(fTab().id))
-      globalShortcut.registerAll(['CmdOrCtrl+Shift+Tab'], () => this.prevTab(fTab().id))
+    this.session.registerPreloadScript({
+      id: 'shell-preload',
+      type: 'frame',
+      filePath: PATHS.PRELOAD,
     })
-    app.on('browser-window-blur', () => globalShortcut.unregisterAll())
-
-    if ('registerPreloadScript' in this.session) {
-      this.session.registerPreloadScript({
-        id: 'shell-preload',
-        type: 'frame',
-        filePath: PATHS.PRELOAD,
-      })
-    } else {
-      // TODO(mv3): remove
-      this.session.setPreloads([PATHS.PRELOAD])
-    }
 
     this.extensions = new ElectronChromeExtensions({
       license: 'internal-license-do-not-use',
@@ -609,7 +584,7 @@ class Browser extends EventEmitter {
     })
 
     // extension containing window chrome UI
-    const webuiExtension = await this.session.loadExtension(PATHS.WEBUI)
+    const webuiExtension = await this.session.extensions.loadExtension(PATHS.WEBUI)
     webuiExtensionId = webuiExtension.id
     webuiUrl = `chrome-extension://${webuiExtensionId}/webui.html`
 
@@ -667,17 +642,12 @@ class Browser extends EventEmitter {
 
     console.log('Starting extension workers.')
     await Promise.all(
-      this.session.getAllExtensions().map(async (extension) => {
+      this.session.extensions.getAllExtensions().map(async (extension) => {
         const manifest = extension.manifest
         if (manifest.manifest_version === 3 && manifest?.background?.service_worker) {
-          console.error(
-            `Extension ${extension.name} is a Manifest V3 extension that uses service workers, which are not yet supported. Some functionality may be missing.`,
-          )
-          /*
           await this.session.serviceWorkers.startWorkerForScope(extension.url).catch((error) => {
             console.error(error)
           })
-          //*/
         }
       }),
     )
@@ -702,6 +672,8 @@ class Browser extends EventEmitter {
 
     // Messages from webui/settings
     ipcMain.handle('webui-message', async (ev, meta, data) => {
+      // The shell preload matches by path, so other extensions' background pages get window.ipc too.
+      if (!ev.senderFrame?.url.startsWith(webuiBase + '/')) throw new Error('Forbidden')
       let result
       switch (meta.type) {
         case 'get-damecon-info':
@@ -728,7 +700,7 @@ class Browser extends EventEmitter {
           if (data.key.startsWith('proxy.')) {
             await this.applyProxy()
           } else if (data.key == 'kc3kai.update.channel') {
-            if (kc3ExtensionId) this.session.removeExtension(kc3ExtensionId)
+            if (kc3ExtensionId) this.session.extensions.removeExtension(kc3ExtensionId)
             await this.updateKc3IfScheduled()
           } else if (data.key === 'window.style.brightness') {
             nativeTheme.themeSource = data.value
@@ -772,6 +744,7 @@ class Browser extends EventEmitter {
         case 'select-custom-data-location':
           const { canceled, filePaths } = await dialog.showOpenDialog({
             properties: ['openDirectory'],
+            defaultPath: data?.defaultPath || undefined,
           })
           result = { canceled, filePaths }
           break
@@ -804,15 +777,14 @@ class Browser extends EventEmitter {
           }
           break
         }
-        case 'webui-zoom-changed':
-          //console.log('zoom changed', data)
-          let zoomWin = this.windows.find((w) => w.window.id === meta.windowId)
-          zoomWin?.tabs.updateLayout(data.height)
+        case 'webui-display-mode-changed': {
+          // Tab bounds are window DIPs; webui sends its top bar height in CSS px.
+          const layoutWin = this.windows.find((w) => w.window.id === meta.windowId)
+          layoutWin?.tabs.updateLayout(
+            Math.round(data.height * layoutWin.webContents.getZoomFactor()),
+          )
           break
-        case 'webui-display-mode-changed':
-          let modeWin = this.windows.find((w) => w.window.id === meta.windowId)
-          modeWin?.tabs.updateLayout(data.height)
-          break
+        }
         case 'webui-close-tab':
           //console.log('clicked tab X', data)
           this.confirmCloseTab(data.tabId)
@@ -921,13 +893,9 @@ class Browser extends EventEmitter {
 
     this.session.cookies.on('changed', (event, cookie, cause, removed) => {
       if (!configStore.get('kancolle.forceCookieHack')) return
+      // Every non-removal is an insert. Electron >= 41 reports it as 'inserted*', not 'explicit'.
       if (removed) return
-      if (
-        cookie.domain != '.dmm.com' ||
-        (cause != 'explicit' && cause != 'expired-overwrite') ||
-        !cookie.name.startsWith('ck')
-      )
-        return
+      if (cookie.domain != '.dmm.com' || !cookie.name.startsWith('ck')) return
       //console.log(`Cookie ${removed ? 'removed' : 'changed'}: ${cookie.name} ; Cause: ${cause}`)
       this.interceptCookieUpdate({ cookie, cause, removed })
     })
@@ -987,13 +955,24 @@ class Browser extends EventEmitter {
       )
       if (confirmTab) {
         const leave = this.checkConfirmClose()
-        if (!leave) return
+        if (!leave) {
+          this.quitting = false
+          return
+        }
       }
 
       this.windows.splice(idx, 1)
       newTabbedWindow.destroy()
     })
+    const onInput = (event, input) => this.handleShortcut(newTabbedWindow, event, input)
+    newTabbedWindow.webContents.on('before-input-event', onInput)
+    newTabbedWindow.tabs.on('tab-created', (tab) => {
+      tab.webContents.on('before-input-event', onInput)
+      tab.searchView.webContents.on('before-input-event', onInput)
+    })
     newTabbedWindow.window.on('resize', () => {
+      // WebContentsView has no setAutoResize
+      newTabbedWindow.tabs.updateLayout()
       this.sendToWindow(newTabbedWindow.id, 'webui-display-mode', {
         mode: newTabbedWindow.window.isMaximized() ? 'maximized' : 'normal',
       })
@@ -1314,6 +1293,8 @@ class Browser extends EventEmitter {
         frameRoutingId,
       ) => {
         const frame = webFrameMain.fromId(frameProcessId, frameRoutingId)
+        // Electron >= 33 may hand back no frame or a detached one
+        if (!frame || frame.detached) return
         const isDevTools = url.startsWith('devtools:')
         const isDevToolsPanel = frame.parent?.url.startsWith('devtools:')
         const isCustomDevtoolsPanel = url.startsWith('chrome-extension:') && isDevToolsPanel
@@ -1337,6 +1318,67 @@ class Browser extends EventEmitter {
       cancelId: 1,
     })
     return choice === 0
+  }
+
+  // Window-level shortcuts for a window's webui, tab and find-bar webContents. Not globalShortcut:
+  // on Wayland (native by default since Electron 38) that goes through the desktop portal, which
+  // needs a .desktop identity and may prompt or refuse.
+  handleShortcut(win, event, input) {
+    const tab = win.getFocusedTab()
+    if (input.type !== 'keyDown' || !tab) return
+    const isMac = process.platform === 'darwin'
+    // ponytail: physical key positions (input.code); use input.key if non-QWERTY layouts need it
+    const accelerator = [
+      (isMac ? input.meta : input.control) && 'CmdOrCtrl',
+      (isMac ? input.control : input.meta) && 'Super',
+      input.alt && 'Alt',
+      input.shift && 'Shift',
+      input.code.replace(/^Key/, ''),
+    ]
+      .filter(Boolean)
+      .join('+')
+    switch (accelerator) {
+      case 'CmdOrCtrl+T':
+        win.tabs.create()
+        break
+      case 'CmdOrCtrl+N':
+        this.createTabbedWindow({ initialUrls: [settingsUrl, newTabUrl] })
+        break
+      case 'CmdOrCtrl+R':
+      case 'F5':
+        tab.webContents.reload()
+        break
+      case 'CmdOrCtrl+Shift+R':
+      case 'CmdOrCtrl+F5':
+        tab.webContents.reloadIgnoringCache()
+        break
+      case 'CmdOrCtrl+W':
+      case 'CmdOrCtrl+F4':
+        this.confirmCloseTab(tab.id)
+        break
+      case 'F3':
+      case 'CmdOrCtrl+F':
+        this.setFindInPageVisible(tab.id, true)
+        break
+      case 'Escape':
+        this.setFindInPageVisible(tab.id, false)
+        break
+      case 'Alt+A':
+        this.toggleAddressBar(tab.id)
+        break
+      case 'Alt+D':
+        this.focusAddressBar(tab.id)
+        break
+      case 'CmdOrCtrl+Tab':
+        this.nextTab(tab.id)
+        break
+      case 'CmdOrCtrl+Shift+Tab':
+        this.prevTab(tab.id)
+        break
+      default:
+        return
+    }
+    event.preventDefault()
   }
 
   confirmCloseTab(tabId) {
@@ -1472,7 +1514,7 @@ class Browser extends EventEmitter {
 
     let kc3
     try {
-      kc3 = await this.session.loadExtension(kc3Path)
+      kc3 = await this.session.extensions.loadExtension(kc3Path)
     } catch (error) {
       console.error(
         `Unable to load KC3 from ${hideHome(kc3Path)}. It may need to be installed/updated.`,

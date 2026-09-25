@@ -6,47 +6,12 @@ import {
   matchesPattern,
   matchesTitlePattern,
   TabContents,
+  validateExtensionUrl,
 } from './common'
 import { WindowsAPI } from './windows'
 import debug from 'debug'
 
 const d = debug('electron-chrome-extensions:tabs')
-
-function isValidHttpUrl(input: string) {
-  let url
-  try {
-    url = new URL(input)
-  } catch (e) {
-    return false
-  }
-  return url.protocol === 'http:' || url.protocol === 'https:'
-}
-
-const validateExtensionUrl = (url: string, extension: Electron.Extension) => {
-  // Convert relative URLs to absolute if needed
-  try {
-    //url = new URL(url, extension.url).href
-    if (
-      extension.name === 'WebUI' &&
-      !url.startsWith('chrome-extension://') &&
-      !url.startsWith('chrome:') &&
-      !isValidHttpUrl(url)
-    ) {
-      url = 'http://' + url
-    } else {
-      url = new URL(url, extension.url).href
-    }
-  } catch (e) {
-    throw new Error('Invalid URL')
-  }
-
-  // Prevent creating chrome://kill or other debug commands
-  if (url.startsWith('javascript:')) {
-    throw new Error('Invalid URL')
-  }
-
-  return url
-}
 
 export class TabsAPI {
   static TAB_ID_NONE = -1
@@ -169,7 +134,8 @@ export class TabsAPI {
   }
 
   private async captureVisibleTab(event: ExtensionEvent, windowId: number, options: ImageDetails) {
-    if (windowId === TabsAPI.WINDOW_ID_CURRENT)
+    // Chrome treats a null/omitted windowId as the current window (KC3 passes null)
+    if (windowId == null || windowId === TabsAPI.WINDOW_ID_CURRENT)
       windowId = this.ctx.store.getWindowFromWebContents(event.sender).id
     const win = this.ctx.store.getWindowById(windowId)
     if (!win) throw new Error(`Couldn't find a window with ID ${windowId}`)
@@ -381,9 +347,7 @@ export class TabsAPI {
       ? this.ctx.store.getTabById(tabId)
       : this.ctx.store.getActiveTabFromWebContents(event.sender)
     if (!tab) return
-    tab
-      //.navigationHistory // Electron 35
-      .goForward()
+    tab.navigationHistory.goForward()
   }
 
   private goBack(event: ExtensionEvent, arg1?: unknown) {
@@ -392,9 +356,7 @@ export class TabsAPI {
       ? this.ctx.store.getTabById(tabId)
       : this.ctx.store.getActiveTabFromWebContents(event.sender)
     if (!tab) return
-    tab
-      //.navigationHistory // Electron 35
-      .goBack()
+    tab.navigationHistory.goBack()
   }
 
   onCreated(tabId: number) {

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, clipboard, Menu, MenuItem, nativeImage } from 'electron'
+import { app, BrowserWindow, clipboard, ClipboardItem, Menu, MenuItem, nativeImage } from 'electron'
 
 const LABELS = {
   openInNewTab: (type: 'link' | Electron.ContextMenuParams['mediaType']) =>
@@ -22,24 +22,9 @@ const LABELS = {
   emoji: 'Emoji',
 }
 
-const getBrowserWindowFromWebContents = (webContents: Electron.WebContents) => {
-  return BrowserWindow.getAllWindows().find((win) => {
-    if (win.webContents === webContents) return true
-
-    let browserViews: Electron.BrowserView[]
-
-    if ('getBrowserViews' in win) {
-      browserViews = win.getBrowserViews()
-    } else if ('getBrowserView' in win) {
-      // @ts-ignore
-      browserViews = [win.getBrowserView()]
-    } else {
-      browserViews = []
-    }
-
-    return browserViews.some((view) => view.webContents === webContents)
-  })
-}
+// Resolves the window's own webContents as well as View-hosted ones (WebContentsView/BrowserView)
+const getBrowserWindowFromWebContents = (webContents: Electron.WebContents) =>
+  BrowserWindow.fromWebContents(webContents)
 
 type ChromeContextMenuLabels = typeof LABELS
 
@@ -160,8 +145,10 @@ takeScreenshot()`
 
         params.frame?.executeJavaScript(copy).then((result) => {
           if (typeof result === 'string') {
-            const b64 = nativeImage.createFromDataURL(result)
-            clipboard.writeImage(b64)
+            const png = nativeImage.createFromDataURL(result).toPNG()
+            clipboard.write([
+              new ClipboardItem({ 'image/png': new Blob([png], { type: 'image/png' }) }),
+            ])
           }
         })
       },
@@ -212,8 +199,7 @@ saveImage()`
     } else {
       if (
         app.isEmojiPanelSupported() &&
-        !['number', 'tel', 'other'].includes(params.inputFieldType)
-        //!['input-number', 'input-telephone'].includes(params.formControlType) // Electron 35
+        !['input-number', 'input-telephone'].includes(params.formControlType)
       ) {
         append({
           label: labels.emoji,
@@ -291,23 +277,13 @@ saveImage()`
 
     append({
       label: labels.back,
-      enabled: webContents
-        //.navigationHistory // Electron 35
-        .canGoBack(),
-      click: () =>
-        webContents
-          //.navigationHistory // Electron 35
-          .goBack(),
+      enabled: webContents.navigationHistory.canGoBack(),
+      click: () => webContents.navigationHistory.goBack(),
     })
     append({
       label: labels.forward,
-      enabled: webContents
-        //.navigationHistory // Electron 35
-        .canGoForward(),
-      click: () =>
-        webContents
-          //.navigationHistory // Electron 35
-          .goForward(),
+      enabled: webContents.navigationHistory.canGoForward(),
+      click: () => webContents.navigationHistory.goForward(),
     })
     append({
       label: labels.reload,
