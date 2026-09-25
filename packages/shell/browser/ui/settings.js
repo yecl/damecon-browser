@@ -50,6 +50,8 @@ class Settings {
   )
 
   kc3IsUpdating = ko.observable(false)
+  kc3UpdateError = ko.observable('')
+  proxySaved = ko.observable(false)
   kc3UpdatingChannel = ko.observable('')
   canSetKc3Channel = ko.computed(() => !this.kc3IsUpdating(), this)
   canUpdateKc3 = ko.observable(true)
@@ -198,6 +200,9 @@ class Settings {
   async saveProxyConfig() {
     await configStore.set('proxy.client.host', this.config.proxy.client.host())
     await configStore.set('proxy.client.port', this.config.proxy.client.port())
+    this.proxySaved(true)
+    clearTimeout(this.proxySavedTimer)
+    this.proxySavedTimer = setTimeout(() => this.proxySaved(false), 3000)
   }
 
   // updates the config from ko properties
@@ -331,9 +336,10 @@ class Settings {
       case 'status-kc3-is-updating':
         this.kc3IsUpdating(msg.data.isUpdating)
         this.kc3UpdatingChannel(msg.data.channel)
+        if (msg.data.isUpdating) this.kc3UpdateError('')
         break
       case 'error-do-kc3-update':
-        // TODO: report the error
+        this.kc3UpdateError(String(msg.data))
         break
       case 'update-process-started':
         console.log('process started', msg.data.name)

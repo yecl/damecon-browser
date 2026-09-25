@@ -824,19 +824,17 @@ class Browser extends EventEmitter {
         break
       case 'update-process-completed':
         this.sendToAllWindows(msg.type, msg.data)
-
-        if (msg.data.name === 'KC3 Update') {
-          const kc3Path = this.getKc3Path()
-          if (!kc3Path) {
-            //console.log('No kc3 path provided.')
-            return
-          }
-          const channel = this.kc3UpdatingChannel
-          if (!channel.startsWith('custom'))
-            configStore.set('kc3kai.update.time.' + channel, Date.now())
-          await this.checkStartKc3(kc3Path)
-        }
         break
+      case 'kc3-update-finished': {
+        // Only a successful check counts for the schedule, so a failed one is retried next start.
+        const { channel, ok, error } = msg.data
+        if (ok && !channel.startsWith('custom'))
+          configStore.set('kc3kai.update.time.' + channel, Date.now())
+        if (!ok) this.sendToAllWindows('error-do-kc3-update', `KC3 update failed: ${error}`)
+        const kc3Path = this.getKc3Path()
+        if (kc3Path) await this.checkStartKc3(kc3Path)
+        break
+      }
       default:
         throw new Error(`Unknown message type ${msg.type}`)
     }

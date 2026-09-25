@@ -328,6 +328,7 @@
         <!-- ko if: config.kc3kai.update.channel()?.startsWith('custom') -->
         <button class="btn btn-secondary" type="button" data-bind="click: kc3CheckForUpdates, enable: canUpdateKc3">Reload</button>
         <!-- /ko -->
+        <div class="text-danger small mt-1" data-bind="visible: kc3UpdateError, text: kc3UpdateError"></div>
       </div>
       <p>Note: reloading will automatically close any currently-open KC3 tabs.</p>
     </script>
@@ -358,6 +359,7 @@
         </div>
         <div class="form-row mt-2">
           <div class="col text-right">
+            <span class="text-success mr-2" data-bind="visible: proxySaved">Saved and applied</span>
             <button type="button" class="btn btn-primary" data-bind="click: saveProxyConfig">Save</button>
           </div>
         </div>

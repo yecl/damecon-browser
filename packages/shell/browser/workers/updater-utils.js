@@ -5,15 +5,30 @@ import http from 'http'
 import { HttpsProxyAgent } from 'https-proxy-agent'
 import { SocksProxyAgent } from 'socks-proxy-agent'
 
-let proxyUrl = null
+const TIMEOUT_MS = 20000 // no response / no data for this long fails the request
 
+let proxyUrl = null
+let proxyGeneration = 0
+const activeRequests = new Set()
+
+// Returns whether the proxy changed. Requests still going through the old route are aborted,
+// so an update stuck on an unreachable network can restart with the new settings right away.
 function applyProxySettings(url) {
+  url = url || null
+  if (url === proxyUrl) return false
   proxyUrl = url
+  proxyGeneration++
   console.log('Worker proxy set to:', proxyUrl)
+  for (const req of activeRequests) req.destroy(new Error('Proxy settings changed'))
+  return true
 }
 
 function getProxyUrl() {
   return proxyUrl
+}
+
+function getProxyGeneration() {
+  return proxyGeneration
 }
 
 function getProxyAgent() {
@@ -35,42 +50,78 @@ const onUpdateCompleted = function (name) {
   parentPort.postMessage({ type: 'update-process-completed', data: { name } })
 }
 
-const proxyFetch = function (url) {
+// HTTP(S) request through the configured proxy, following redirects. Resolves with the response.
+const request = function (url, { method = 'GET', headers, body } = {}) {
   return new Promise((resolve, reject) => {
     const mod = new URL(url).protocol === 'https:' ? https : http
-    const options = {}
-    const agent = getProxyAgent()
-    if (agent) options.agent = agent
-
-    const req = mod.get(url, options, (res) => {
-      // Follow redirects
+    const req = mod.request(url, { method, headers, agent: getProxyAgent() }, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         res.resume()
-        return resolve(proxyFetch(res.headers.location))
+        const next = new URL(res.headers.location, url).href
+        return resolve(request(next, { method, headers, body }))
       }
-      resolve({
-        ok: res.statusCode >= 200 && res.statusCode < 300,
-        status: res.statusCode,
-        statusText: res.statusMessage,
-        headers: { get: (name) => res.headers[name.toLowerCase()] },
-        body: res,
-        async json() {
-          const chunks = []
-          for await (const chunk of res) chunks.push(chunk)
-          return JSON.parse(Buffer.concat(chunks).toString())
-        },
-      })
+      resolve(res)
     })
+    activeRequests.add(req)
+    // req.setTimeout only counts once connected, so a hanging connect needs its own timer
+    const timer = setTimeout(
+      () => req.destroy(new Error(`No response within ${TIMEOUT_MS / 1000}s: ${url}`)),
+      TIMEOUT_MS,
+    )
+    req.on('response', () => clearTimeout(timer))
+    req.on('close', () => {
+      clearTimeout(timer)
+      activeRequests.delete(req)
+    })
+    req.setTimeout(TIMEOUT_MS, () => req.destroy(new Error(`Connection stalled: ${url}`)))
     req.on('error', reject)
+    req.end(body)
   })
+}
+
+const proxyFetch = async function (url) {
+  const res = await request(url)
+  return {
+    ok: res.statusCode >= 200 && res.statusCode < 300,
+    status: res.statusCode,
+    statusText: res.statusMessage,
+    headers: { get: (name) => res.headers[name.toLowerCase()] },
+    body: res,
+    async json() {
+      const chunks = []
+      for await (const chunk of res) chunks.push(chunk)
+      return JSON.parse(Buffer.concat(chunks).toString())
+    },
+  }
+}
+
+// isomorphic-git http client with the same proxy, timeouts and abort-on-proxy-change.
+const gitHttp = {
+  async request({ url, method = 'GET', headers = {}, body }) {
+    let data
+    if (body) {
+      const chunks = []
+      for await (const chunk of body) chunks.push(chunk)
+      data = Buffer.concat(chunks)
+    }
+    const res = await request(url, { method, headers, body: data })
+    return {
+      url,
+      method,
+      statusCode: res.statusCode,
+      statusMessage: res.statusMessage,
+      headers: res.headers,
+      body: res,
+    }
+  },
 }
 
 const fetchWithProgress = async function (url, onProgress) {
   const res = await proxyFetch(url)
 
   if (!res.ok) {
-    throw new Error({
-      message: `Failed to fetch ${url}: ${res.status} ${res.statusText}`,
+    res.body.resume()
+    throw Object.assign(new Error(`Failed to fetch ${url}: ${res.status} ${res.statusText}`), {
       status: res.status,
     })
   }
@@ -93,5 +144,5 @@ const fetchWithProgress = async function (url, onProgress) {
   return readable
 }
 
-export { applyProxySettings, getProxyUrl, getProxyAgent, proxyFetch }
+export { applyProxySettings, getProxyUrl, getProxyGeneration, getProxyAgent, proxyFetch, gitHttp }
 export { onUpdateStarted, onUpdateProgress, onUpdateCompleted, fetchWithProgress }

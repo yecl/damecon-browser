@@ -2,12 +2,9 @@ import path from 'node:path'
 import fs from 'fs'
 const fsAsync = fs.promises
 import { Readable } from 'stream'
-import { finished } from 'stream/promises'
-import https from 'https'
-import http_node from 'http'
+import { pipeline } from 'stream/promises'
 import AdmZip from 'adm-zip'
 import git from 'isomorphic-git'
-import http from 'isomorphic-git/http/node'
 import ProcessTracker from './processtracker'
 import {
   onUpdateStarted,
@@ -15,36 +12,8 @@ import {
   onUpdateCompleted,
   fetchWithProgress,
   proxyFetch,
-  getProxyAgent,
+  gitHttp,
 } from './updater-utils.js'
-
-// Wrap isomorphic-git http transport to support proxy
-const proxyHttp = {
-  async request({ url, method, headers, body }) {
-    const agent = getProxyAgent()
-    if (agent) {
-      const mod = url.startsWith('https') ? https : http_node
-      return new Promise((resolve, reject) => {
-        const req = mod.request(url, { method, headers, agent }, (res) => {
-          resolve({
-            url,
-            method,
-            statusCode: res.statusCode,
-            statusMessage: res.statusMessage,
-            headers: res.headers,
-            body: [res],
-          })
-        })
-        req.on('error', reject)
-        if (body) {
-          for (const chunk of body) req.write(chunk)
-        }
-        req.end()
-      })
-    }
-    return http.request({ url, method, headers, body })
-  },
-}
 
 let self
 
@@ -99,7 +68,7 @@ class KC3Updater {
       const pullProcess = self.newProcess('Pulling new commits')
       await git.fastForward({
         fs,
-        http: proxyHttp,
+        http: gitHttp,
         dir,
         ref: latestCommit.oid,
         onProgress: pullProcess.progress.bind(pullProcess),
@@ -112,7 +81,7 @@ class KC3Updater {
       const fetchProcess = self.newProcess('Fetching new commits')
       await git.fetch({
         fs,
-        http: proxyHttp,
+        http: gitHttp,
         dir,
         ref: latestCommit.oid,
         onProgress: fetchProcess.progress.bind(fetchProcess),
@@ -159,14 +128,18 @@ class KC3Updater {
         return
       } else if (channel == 'release') {
         const updateCheckProcess = self.newProcess('Checking for updates')
-        const releaseData = await (
-          await proxyFetch(
-            'https://raw.githubusercontent.com/KC3Kai/KC3Kai/refs/heads/webstore/package.json',
-          )
-        ).json()
+        let releaseData
+        try {
+          releaseData = await (
+            await proxyFetch(
+              'https://raw.githubusercontent.com/KC3Kai/KC3Kai/refs/heads/webstore/package.json',
+            )
+          ).json()
+        } finally {
+          updateCheckProcess.complete()
+        }
         const latestVersion = releaseData.version
         const downloadUrl = `https://github.com/KC3Kai/KC3Kai/releases/download/${latestVersion}/kc3kai-${latestVersion}.zip`
-        updateCheckProcess.complete()
 
         const releaseFile = path.join(dir, 'release')
 
@@ -183,6 +156,23 @@ class KC3Updater {
         } else {
           const zipProcess = self.newProcess('Downloading release ' + latestVersion)
           try {
+            // Download next to the install first: a failed download must not remove the
+            // KC3 that is already installed.
+            const zipFilePath = path.join(extensionsPath, `.kc3kai-release-${latestVersion}.zip`)
+            let totalBytes = 0
+            try {
+              const readable = await fetchWithProgress(downloadUrl, (loaded, total) => {
+                totalBytes = total
+                zipProcess.progress({ phase: 'Downloading', loaded, total, type: 'bytes' })
+              })
+              await pipeline(readable, fs.createWriteStream(zipFilePath))
+            } catch (err) {
+              fs.rmSync(zipFilePath, { force: true })
+              if (err?.status === 404)
+                throw new Error('Release zip not present on server. Publish may be in progress.')
+              throw err
+            }
+
             if (fs.existsSync(dir)) {
               try {
                 fs.rmSync(dir, { recursive: true, force: true })
@@ -191,27 +181,6 @@ class KC3Updater {
             try {
               fs.mkdirSync(dir)
             } catch (err) {}
-
-            const zipFilename = 'kc3kai-release-' + latestVersion + '.zip'
-            const zipFilePath = path.join(dir, zipFilename)
-            let totalBytes = 0
-            try {
-              const readable = await fetchWithProgress(downloadUrl, (loaded, total) => {
-                totalBytes = total
-                zipProcess.progress({ phase: 'Downloading', loaded, total, type: 'bytes' })
-              })
-              const stream = fs.createWriteStream(zipFilePath, { flags: 'wx' })
-              await finished(readable.pipe(stream))
-            } catch (err) {
-              if (err?.status === 404) {
-                console.error(
-                  'kc3updater.js: Release zip not present on server. Publish may be in progress.',
-                )
-              } else {
-                console.error('kc3updater.js: Error downloading release zip:', err)
-              }
-              return
-            }
 
             zipProcess.progress({
               phase: 'Extracting',
@@ -248,16 +217,19 @@ class KC3Updater {
           console.log('Cloning repo...')
 
           const kc3CloneProcess = self.newProcess('Cloning repo')
-          await git.clone({
-            fs,
-            http: proxyHttp,
-            dir,
-            url: 'https://github.com/kc3kai/kc3kai',
-            ref: channel,
-            onProgress: kc3CloneProcess.progress.bind(kc3CloneProcess),
-            cache,
-          })
-          kc3CloneProcess.complete()
+          try {
+            await git.clone({
+              fs,
+              http: gitHttp,
+              dir,
+              url: 'https://github.com/kc3kai/kc3kai',
+              ref: channel,
+              onProgress: kc3CloneProcess.progress.bind(kc3CloneProcess),
+              cache,
+            })
+          } finally {
+            kc3CloneProcess.complete()
+          }
         } else console.log('Updating existing repo...')
 
         updateProgress()
@@ -273,7 +245,7 @@ class KC3Updater {
 
         // Get newest commit
         let latestCommits = await git.listServerRefs({
-          http: proxyHttp,
+          http: gitHttp,
           url: 'https://github.com/kc3kai/kc3kai',
           prefix: `refs/heads/${channel}`,
           cache,
@@ -326,7 +298,7 @@ class KC3Updater {
               const langCloneProcess = self.newProcess('Cloning translation repo')
               await git.clone({
                 fs,
-                http: proxyHttp,
+                http: gitHttp,
                 dir: langDir,
                 url: 'https://github.com/kc3kai/kc3-translations',
                 ref: latestLangCommit.oid,
