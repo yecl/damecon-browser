@@ -1213,6 +1213,33 @@ class Browser extends EventEmitter {
     }
   }
 
+  // Same as the Network panel's record button. KC3 reads the game API through
+  // chrome.devtools.network.onRequestFinished, which DevTools delivers whether or not the
+  // Network panel keeps its own log, so turning it off only saves memory.
+  applyDevtoolsNetworkLog(devtools) {
+    const record = !!configStore.get('kc3kai.startup.devtoolsRecordNetworkLog')
+    const apply = () =>
+      devtools
+        .executeJavaScript(
+          `(async () => {
+            const Common = await import('./core/common/common.js')
+            for (let i = 0; i < 100; i++) {
+              try {
+                Common.Settings.Settings.instance().createSetting('network-log.record-log', true).set(${record})
+                return true
+              } catch {
+                await new Promise((resolve) => setTimeout(resolve, 100)) // settings not created yet
+              }
+            }
+            return false
+          })()`,
+        )
+        .then((ok) => ok || console.error('DevTools network log setting not applied'))
+        .catch((error) => console.error('Failed to set DevTools network log recording:', error))
+    if (devtools.isLoading()) devtools.once('did-finish-load', apply)
+    else apply()
+  }
+
   async onWebContentsCreated(event, webContents) {
     const browser = this
     const type = webContents.getType()
@@ -1226,6 +1253,7 @@ class Browser extends EventEmitter {
       devtools.on('did-create-window', (window, details) => {
         console.log('Window created', details)
       })
+      this.applyDevtoolsNetworkLog(devtools)
     })
 
     //*

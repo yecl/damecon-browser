@@ -87,6 +87,7 @@ const configSchema = {
       openDevtools: { type: 'bool', default: true },
       openDevtoolsDelay: { type: 'number', default: platform === 'darwin' ? 2 : 0 },
       openStratRoom: { type: 'bool', default: true },
+      devtoolsRecordNetworkLog: { type: 'bool', default: false },
     },
     update: {
       channel: {
