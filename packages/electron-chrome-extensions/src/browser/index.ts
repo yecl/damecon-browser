@@ -20,6 +20,7 @@ import { ExtensionContext } from './context'
 import { ExtensionRouter } from './router'
 import { checkLicense, License } from './license'
 import { readLoadedExtensionManifest } from './manifest'
+import { initStaticRulesets } from './dnr-rulesets'
 import { PermissionsAPI } from './api/permissions'
 import { resolvePartition } from './partition'
 
@@ -182,6 +183,7 @@ export class ElectronChromeExtensions extends EventEmitter {
     sessionExtensions.addListener('extension-loaded', (_event, extension) => {
       readLoadedExtensionManifest(this.ctx, extension)
     })
+    initStaticRulesets(this.ctx)
   }
 
   private async prependPreload(modulePath?: string) {

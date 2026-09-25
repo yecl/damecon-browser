@@ -57,7 +57,7 @@ Unpacked extensions inside `./extensions` will be loaded automatically.
 - Supports both Manifest V2 and V3 extensions.
 - Some/many plugins may not run properly (or at all) due to various extension APIs being unsupported. Known gaps:
   - `chrome.proxy` (proxy switchers such as ZeroOmega); use Damecon's own proxy settings instead.
-  - Static `declarativeNetRequest` rulesets (e.g. Kantai3D) and `webRequest.onAuthRequired`.
+  - `webRequest.onAuthRequired`.
   - Extension pages inside DevTools (such as KC3's panel) and extension pages embedded in iframes only get Electron's built-in `chrome.*` APIs (no `tabs`, `windows`, `downloads`, ...).
 
 There are a few plugins bundled with the Release builds for your convenience. It is safe to remove them if you wish (just delete from the `extensions` folder).
