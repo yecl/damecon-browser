@@ -469,7 +469,8 @@ ul {
   color: var(--control-text-color);
 }
 
-.tab .controls .control.close:hover {
+.tab .controls .control.close:hover,
+.tab .controls .control.audio:hover {
   background-color: var(--control-hover-layered-bg-color);
 }
 

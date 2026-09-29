@@ -19,7 +19,7 @@
               <!-- data-bind="event: { pointerdown: tabPointerDown, pointermove: tabPointerMove, pointerout: tabPointerOut, pointerup: tabPointerUp }" -->
               <!-- ko foreach: tabs() -->
               <li draggable="true" dropzone="true" data-bind="attr: { class: `tab-container tab-separator-${separator()}${active() ? ' tab-active' : ''}${url==$root.settingsUrl ? ' tab-compact' : ''}`},
-                event: { pointerdown: $root.tabPointerDown.bind($root), pointermove: $root.tabPointerMove.bind($root), pointerup: $root.tabPointerUp.bind($root) }">
+                event: { pointerdown: $root.tabPointerDown.bind($root), pointermove: $root.tabPointerMove.bind($root), pointerup: $root.tabPointerUp.bind($root), contextmenu: $root.tabContextMenu.bind($root) }">
                 <div class="tab">
                   <!-- ko if: !$index() && $root.downloads().length -->
                   <img class="favicon" src="assets/icons/download_icon_48.png" alt="active downloads" />
@@ -32,9 +32,14 @@
                   <!-- /ko -->
                   <span class="title" data-bind="text: title"></span>
                   <div class="controls">
-                    <!-- ko if: audible -->
-                    <button type="button" class="control audio" title="audio playback" disabled>
-                      <i class="fa-sharp fa-solid fa-volume-up"></i>
+                    <!-- ko if: mutedInfo && mutedInfo.muted -->
+                    <button type="button" class="control audio" title="unmute tab" data-bind="click: $root.toggleTabMuted.bind($root)">
+                      <i class="fa-sharp fa-solid fa-volume-xmark"></i>
+                    </button>
+                    <!-- /ko -->
+                    <!-- ko if: audible && !(mutedInfo && mutedInfo.muted) -->
+                    <button type="button" class="control audio" title="mute tab" data-bind="click: $root.toggleTabMuted.bind($root)">
+                      <i class="fa-sharp fa-solid fa-volume-high"></i>
                     </button>
                     <!-- /ko -->
                     <!-- ko if: url != $root.settingsUrl -->

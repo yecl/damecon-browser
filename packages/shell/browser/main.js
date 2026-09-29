@@ -6,6 +6,7 @@ import {
   BrowserWindow,
   Notification,
   ipcMain,
+  Menu,
   nativeTheme,
   dialog,
   webFrameMain,
@@ -857,6 +858,22 @@ class Browser extends EventEmitter {
           layoutWin?.tabs.updateLayout(
             Math.round(data.height * layoutWin.webContents.getZoomFactor()),
           )
+          break
+        }
+        case 'webui-tab-context-menu': {
+          const tab = this.windows.flatMap((w) => w.tabs.tabList).find((t) => t.id == data.tabId)
+          if (!tab) break
+          const wc = tab.webContents
+          Menu.buildFromTemplate([
+            {
+              label: wc.isAudioMuted() ? 'Unmute tab' : 'Mute tab',
+              click: () => {
+                wc.setAudioMuted(!wc.isAudioMuted())
+                // lets chrome.tabs.onUpdated report the new mutedInfo to the tab strip
+                wc.emit('tab-updated')
+              },
+            },
+          ]).popup({ window: BrowserWindow.fromWebContents(ev.sender) })
           break
         }
         case 'webui-close-tab':

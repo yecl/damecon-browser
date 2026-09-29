@@ -477,7 +477,8 @@ class WebUI {
     if (ev.button === 1 && tab.url != this.settingsUrl) this.closingTabId = tab.id
     else this.closingTabId = -1
 
-    if (ev.button === 0) {
+    // tab buttons (mute, close) handle their own clicks; capturing would retarget them to the tab
+    if (ev.button === 0 && !ev.target.closest('.control')) {
       console.log("Holding tab", tab.id)
       this.heldTabId = tab.id
       this.dragTarget = ev.currentTarget
@@ -559,6 +560,12 @@ class WebUI {
   browserActionCloseTab(tab, ev) {
     chrome.tabs.remove(tab.id)
     return true
+  }
+  toggleTabMuted(tab) {
+    chrome.tabs.update(tab.id, { muted: !tab.mutedInfo?.muted })
+  }
+  tabContextMenu(tab, ev) {
+    this.sendToMain('webui-tab-context-menu', { tabId: tab.id })
   }
   browserActionAddressKeyDown(data, event) {
     event = event.originalEvent
