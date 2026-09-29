@@ -490,7 +490,8 @@ class Browser extends EventEmitter {
 
     let proxyUrl = null
     if (this.isProxyEnabled && simpleModes.includes(mode)) {
-      const scheme = mode === 'socks5-proxy' ? 'socks5' : 'http'
+      // socks5h: let the proxy resolve hostnames like Chromium does; socks5 would look them up locally
+      const scheme = mode === 'socks5-proxy' ? 'socks5h' : 'http'
       proxyUrl = `${scheme}://${proxyCfg.client.host}:${proxyCfg.client.port}`
     }
 
