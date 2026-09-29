@@ -364,11 +364,17 @@
           </div>
         </div>
       </div>
-      <h5>External KCCacheProxy</h5>
+      <h5>KCCacheProxy</h5>
       <div class="settings-group">
-        <div class="form-check">
-          <input class="form-check-input" id="kccpenable" type="checkbox" data-bind="checked: config.proxy.kccp.enable">
-          <label class="form-check-label" for="kccpenable">Send game server traffic through KCCP</label>
+        <div class="form-check form-row row">
+          <div class="form-check col-sm-6">
+            <input class="form-check-input" id="kccpenable" type="checkbox" data-bind="checked: config.proxy.kccp.enable">
+            <label class="form-check-label" for="kccpenable">Send game server traffic through KCCP</label>
+          </div>
+          <div class="form-check col">
+            <label for="kccpmode" class="form-check-label">Mode</label>
+            <select id="kccpmode" class="col form-control" data-bind="options: configSchema.proxy.kccp.mode.options, value: config.proxy.kccp.mode"></select>
+          </div>
         </div>
         <div class="form-row">
           <label for="kccphost" class="col-sm-3">Host</label>
@@ -386,10 +392,17 @@
         </div>
         <p class="small text-muted mt-2">
           Only game servers (*.kancolle-server.com) go to KCCP, and its certificate is accepted for those hosts only.
-          Everything else still uses the proxy above. KCCP makes its own connections to the game servers and
-          does not use Damecon's proxy. To send them through an HTTP proxy, run KCCP on a recent Node.js
-          (e.g. the Docker image) with <code>NODE_USE_ENV_PROXY=1</code> and <code>HTTPS_PROXY=http://host:port</code>,
-          or use a system-wide/TUN proxy.
+          Everything else still uses the proxy above.
+        </p>
+        <p class="small text-muted" data-bind="visible: config.proxy.kccp.mode() === 'internal'">
+          internal: Damecon runs KCCP itself and listens on the host and port above. Its connections to the game
+          servers also use the proxy above. Cache and KCCP's own config.json are in <code>userdata/kccp</code>.
+        </p>
+        <p class="small text-muted" data-bind="visible: config.proxy.kccp.mode() === 'external'">
+          external: enter the address of a KCCP you run yourself. It connects to the game servers on its own and does
+          not use Damecon's proxy. To send them through an HTTP proxy, run KCCP on a recent Node.js (e.g. the Docker
+          image) with <code>NODE_USE_ENV_PROXY=1</code> and <code>HTTPS_PROXY=http://host:port</code>, or use a
+          system-wide/TUN proxy.
         </p>
       </div>
     </script>

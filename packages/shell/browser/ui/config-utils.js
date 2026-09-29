@@ -118,6 +118,7 @@ const configSchema = {
     },
     kccp: {
       enable: { type: 'bool', default: false },
+      mode: { type: 'option', options: ['internal', 'external'], default: 'internal' },
       host: { type: 'string', default: '127.0.0.1' },
       port: { type: 'number', default: 8082 },
     },

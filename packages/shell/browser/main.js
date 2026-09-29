@@ -11,6 +11,12 @@ import {
   webFrameMain,
 } from 'electron'
 import { EventEmitter } from 'events'
+import http from 'http'
+import https from 'https'
+import { HttpsProxyAgent } from 'https-proxy-agent'
+import { SocksProxyAgent } from 'socks-proxy-agent'
+
+const defaultAgents = { http: http.globalAgent, https: https.globalAgent }
 
 if (require('electron-squirrel-startup')) app.quit()
 app.setAppUserModelId('net.tsunkit.damecon')
@@ -480,15 +486,56 @@ class Browser extends EventEmitter {
       await this.session.setProxy({ mode: 'system' })
     }
 
+    let proxyUrl = null
+    if (this.isProxyEnabled && simpleModes.includes(mode)) {
+      const scheme = mode === 'socks5-proxy' ? 'socks5' : 'http'
+      proxyUrl = `${scheme}://${proxyCfg.client.host}:${proxyCfg.client.port}`
+    }
+
+    // Node requests in this process (the built-in KCCP's upstream fetches) use the outer proxy too
+    const agent = !proxyUrl
+      ? null
+      : proxyUrl.startsWith('socks5')
+        ? new SocksProxyAgent(proxyUrl)
+        : new HttpsProxyAgent(proxyUrl)
+    http.globalAgent = agent || defaultAgents.http
+    https.globalAgent = agent || defaultAgents.https
+
+    await this.syncInternalKccp(kccp)
+
     // Sync proxy settings to worker threads (for Node.js fetch)
     if (this.updateWorker) {
-      let proxyUrl = null
-      if (this.isProxyEnabled && simpleModes.includes(mode)) {
-        const scheme = mode === 'socks5-proxy' ? 'socks5' : 'http'
-        proxyUrl = `${scheme}://${proxyCfg.client.host}:${proxyCfg.client.port}`
-      }
       this.updateWorker.postMessage({ type: 'set-proxy', data: { proxyUrl } })
     }
+  }
+
+  async syncInternalKccp(kccp) {
+    const wanted = kccp.enable && kccp.mode === 'internal'
+    const key = `${kccp.host}:${kccp.port}`
+    if (this.kccp && (!wanted || this.kccp.key !== key)) {
+      this.kccp.proxy.close()
+      this.kccp = null
+    }
+    if (!wanted || this.kccp) return
+
+    process.env.DATA_DIR = path.join(userDataPath, 'kccp')
+    const { Proxy, config } = require('kccacheproxy')
+    await config.setConfig(
+      {
+        ...config.getConfig(),
+        hostname: kccp.host,
+        httpsPort: kccp.port,
+        mode: 'https',
+        socks5Enabled: false,
+        checkForUpdates: false,
+      },
+      true,
+    )
+    const proxy = new Proxy()
+    await proxy.init()
+    await proxy.start()
+    this.kccp = { proxy, key }
+    console.log(`Built-in KCCP listening on ${key}, data in ${hideHome(process.env.DATA_DIR)}`)
   }
 
   getFocusedWindow() {

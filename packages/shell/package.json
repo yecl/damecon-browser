@@ -24,6 +24,7 @@
     "electron-squirrel-startup": "^1.0.1",
     "https-proxy-agent": "^5.0.1",
     "isomorphic-git": "^1.32.1",
+    "kccacheproxy": "https://codeload.github.com/tibowl/KCCacheProxy/tar.gz/42276bb37570ecde90201e730dddf3e748550a0b",
     "matcher": "^5.0.0",
     "socks-proxy-agent": "^7.0.0",
     "update-electron-app": "^3.1.1"
