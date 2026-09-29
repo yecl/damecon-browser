@@ -15,6 +15,7 @@ import http from 'http'
 import https from 'https'
 import { HttpsProxyAgent } from 'https-proxy-agent'
 import { SocksProxyAgent } from 'socks-proxy-agent'
+import * as builtinKccp from './kccp'
 
 const defaultAgents = { http: http.globalAgent, https: https.globalAgent }
 
@@ -512,30 +513,16 @@ class Browser extends EventEmitter {
   async syncInternalKccp(kccp) {
     const wanted = kccp.enable && kccp.mode === 'internal'
     const key = `${kccp.host}:${kccp.port}`
-    if (this.kccp && (!wanted || this.kccp.key !== key)) {
-      this.kccp.proxy.close()
-      this.kccp = null
+    if (this.kccpKey && (!wanted || this.kccpKey !== key)) {
+      builtinKccp.stop()
+      this.kccpKey = null
     }
-    if (!wanted || this.kccp) return
+    if (!wanted || this.kccpKey) return
 
-    process.env.DATA_DIR = path.join(userDataPath, 'kccp')
-    const { Proxy, config } = require('kccacheproxy')
-    await config.setConfig(
-      {
-        ...config.getConfig(),
-        hostname: kccp.host,
-        httpsPort: kccp.port,
-        mode: 'https',
-        socks5Enabled: false,
-        checkForUpdates: false,
-      },
-      true,
-    )
-    const proxy = new Proxy()
-    await proxy.init()
-    await proxy.start()
-    this.kccp = { proxy, key }
-    console.log(`Built-in KCCP listening on ${key}, data in ${hideHome(process.env.DATA_DIR)}`)
+    const dataDir = path.join(userDataPath, 'kccp')
+    await builtinKccp.start({ host: kccp.host, port: kccp.port, dataDir })
+    this.kccpKey = key
+    console.log(`Built-in KCCP started on ${key}, data in ${hideHome(dataDir)}`)
   }
 
   getFocusedWindow() {
@@ -561,6 +548,7 @@ class Browser extends EventEmitter {
   async init() {
     this.initSession()
     setupMenu(this)
+    builtinKccp.init((type, data) => this.sendToAllWindows(type, data))
 
     // KCCP decrypts game traffic with its own CA; trust it for game servers only, never other hosts
     this.session.setCertificateVerifyProc((request, callback) => {
@@ -813,6 +801,9 @@ class Browser extends EventEmitter {
           break
         case 'kc3-get-isupdating':
           result = { isUpdating: this.kc3IsUpdating, channel: this.kc3UpdatingChannel }
+          break
+        case 'kccp':
+          result = await builtinKccp.action(data.action, data)
           break
         case 'kc3-select-custom-location':
         case 'select-custom-data-location':

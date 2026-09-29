@@ -267,6 +267,9 @@ class WebUI {
       case 'update-process-started':
       case 'update-process-progress':
       case 'update-process-completed':
+      case 'kccp-log':
+      case 'kccp-log-recent':
+      case 'kccp-status':
         // (worker ->) main -> webui -> settings
         chrome.runtime.sendMessage(msg)
         break

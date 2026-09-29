@@ -1,3 +1,4 @@
+const path = require('path')
 const CopyWebpackPlugin = require('copy-webpack-plugin')
 
 module.exports = {
@@ -7,6 +8,8 @@ module.exports = {
   },
   resolve: {
     extensions: ['.js', '.ts', '.jsx', '.tsx', '.css', '.json'],
+    // KCCP's package exports only proxy.js; the cache and mod modules are needed too
+    alias: { 'kccp-src': path.dirname(require.resolve('kccacheproxy')) },
   },
   plugins: [
     new CopyWebpackPlugin({

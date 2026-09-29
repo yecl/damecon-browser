@@ -16,8 +16,12 @@ class Settings {
     {
       id: 2,
       name: 'Proxy',
+      faIcon: 'fa-solid fa-circle-nodes',
+    },
+    {
+      id: 4,
+      name: 'KCCP',
       img: 'assets/icons/kccp.png',
-      //faIcon: 'fa-solid fa-circle-nodes'
     },
     {
       id: 3,
@@ -57,6 +61,63 @@ class Settings {
   canUpdateKc3 = ko.observable(true)
 
   downloads = ko.observableArray([])
+
+  kccpTabs = { status: 0, mods: 1, log: 2 }
+  kccpTab = ko.observable(0)
+  kccp = ko.observable(null)
+  kccpError = ko.observable('')
+  kccpLog = ko.observableArray([])
+  kccpGitUrl = ko.observable('')
+  kccpLogBadges = { log: 'secondary', error: 'danger', trace: 'warning' }
+  kccpRecommendedMods = [
+    {
+      name: 'English Patch',
+      authors: ['Oradimi'],
+      url: 'https://github.com/Oradimi/KanColle-English-Patch-KCCP',
+    },
+    {
+      name: 'True Critical Hits',
+      authors: ['Oradimi'],
+      url: 'https://github.com/Oradimi/KanColle-True-Critical-Hits',
+    },
+    { name: 'KCFixes', authors: ['Tibowl'], url: 'https://github.com/Tibowl/KCFixes' },
+  ]
+
+  isBuiltinKccp = () =>
+    this.settingsInitialized() &&
+    this.config.proxy.kccp.enable() &&
+    this.config.proxy.kccp.mode() === 'internal'
+
+  kccpCall = async (action, data) => {
+    // the status poll must not wipe the error of the last button press
+    if (action !== 'status') this.kccpError('')
+    try {
+      const result = await sendToMain('kccp', { ...data, action })
+      if (result?.loaded !== undefined) this.kccp(result)
+      return result
+    } catch (error) {
+      this.kccpError(
+        String(error.message || error).replace(
+          /^Error invoking remote method[^:]*: (Error: )?/,
+          '',
+        ),
+      )
+    }
+  }
+
+  kccpSetOption = (key, event) => this.kccpCall('set-option', { key, value: event.target.checked })
+
+  kccpAddGitMod = async (url) => {
+    await this.kccpCall('add-git-mod', { url: url || this.kccpGitUrl() })
+    if (!this.kccpError()) this.kccpGitUrl('')
+  }
+
+  kccpAppendLog(entries) {
+    this.kccpLog.push(...entries)
+    if (this.kccpLog().length > 500) this.kccpLog.splice(0, this.kccpLog().length - 500)
+    const scroller = document.getElementById('kccp-log-scroller')
+    if (scroller) scroller.scrollTop = scroller.scrollHeight
+  }
 
   /*async sendMessage(type, data) {
     return await ipc.send('webui-message', { type, data })
@@ -365,6 +426,16 @@ class Settings {
       case 'config-saved':
         await this.prepConfigProperties(msg.data)
         break
+      case 'kccp-status':
+        this.kccp(msg.data)
+        break
+      case 'kccp-log':
+        this.kccpAppendLog(msg.data)
+        break
+      case 'kccp-log-recent':
+        this.kccpLog([])
+        this.kccpAppendLog([...msg.data].reverse())
+        break
       default:
         throw new Error(`Unknown message type ${msg.type || '(none)'}`)
     }
@@ -487,6 +558,15 @@ class Settings {
     this.kc3UpdatingChannel(kc3UpdateStatus.channel)
 
     this.config.version(this.version.split(' v')[1])
+
+    // status/stats aren't pushed on every request, so poll while the KCCP page shows them
+    let kccpShown = false
+    setInterval(async () => {
+      const shown = this.selectedConfigPage() === 4 && this.isBuiltinKccp()
+      if (shown && !kccpShown) await this.kccpCall('recent-log')
+      if (shown) await this.kccpCall('status')
+      kccpShown = shown
+    }, 2000)
   }
 }
 window.vm = new Settings()
