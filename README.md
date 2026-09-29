@@ -18,34 +18,35 @@ Seriously, I've literally never worked with Electron before. There's some real s
 
 #### If you use Damecon for any activities involving sensitive information, you do so at your own risk.
 
+## About this fork
+
+This is a fork of [planetarian/damecon-browser](https://github.com/planetarian/damecon-browser), **focused on macOS** (Apple Silicon first).
+
+- **macOS is the maintained platform.** Releases ship a macOS arm64 build. Windows and Linux builds are still produced by CI, but they are untested and not a priority.
+- **KCCacheProxy (KCCP) has been removed**, together with its submodule, mod updater, PAC/redirect/MITM options and the Application Log tab. Only plain HTTP and SOCKS5 proxies remain. Old KCCP proxy settings are migrated to an (initially disabled) HTTP proxy.
+- **Upgraded to Electron 44** (upstream stays on Electron 25).
+- The app auto-updater is removed, because it pointed at upstream's update server. Update by downloading a new release. KC3Kai still updates itself.
+
+See the [Releases page](https://github.com/yecl/damecon-browser/releases) for the full list of changes.
+
 ## Usage
 
-### From a Release build:
+### From a Release build (macOS):
 
-Requires Windows 10 or later, or macOS 13 (Ventura) or later.
+Requires macOS 13 (Ventura) or later, on Apple Silicon.
 
-From the [Releases page](https://github.com/planetarian/damecon-browser/releases/latest), download one of the following:
+From the [Releases page](https://github.com/yecl/damecon-browser/releases/latest), download `damecon-browser-*-arm64.dmg`, open it and drag Damecon to Applications.
 
-Installer: `damecon-browser-*.Setup.exe`
-
-- Simply download and run it to install.
-- This provides automatic updates for Damecon, and the simplest overall process.
-
-Alternatively, use the zip file: `damecon-browser-*.zip`
-
-- Download and extract its contents to an empty folder, and run `damecon-browser.exe` from the extracted files.
-- This lets you use specific versions if desired, but lacks automatic updates.
+The build is not notarized, so on first launch right-click the app and choose Open (or clear the quarantine flag with `xattr -dr com.apple.quarantine /Applications/damecon-browser.app`).
 
 ### From source code, using `yarn`:
 
 Requires Node.js 22 (22.12 or later).
 
 ```bash
-# Get the code
-git clone --recurse-submodules https://github.com/planetarian/damecon-browser
+git clone https://github.com/yecl/damecon-browser
 cd damecon-browser
 
-# Install and launch the browser
 yarn
 yarn start
 ```
@@ -86,7 +87,7 @@ You can select from three different update channels: `release`, `master`, and `d
 
 ### Proxy Configuration
 
-Damecon can route all browser traffic (including KC3 updates) through an HTTP or SOCKS5 proxy.
+Damecon can route all browser traffic (including KC3 updates and web store extension downloads) through an HTTP or SOCKS5 proxy. KCCacheProxy is no longer supported.
 
 Choose the mode and set the host/port in the `Proxy` section of the settings page, then press `Save`. The `Enabled` checkbox turns the proxy on or off.
 
@@ -108,13 +109,13 @@ New Tab launch page:
 
 ### 🚀 Current
 
-- [x] Installer + Application auto-update
+- [x] macOS arm64 builds (DMG)
 - [x] KC3Kai integration
 - [x] Automatic updates for KC3
 - [x] Support both release and in-development versions of KC3
 - [x] Configurable KC3 update schedule (daily/weekly/always/never)
 - [x] Auto-open KC3 start page (with developer tools) and strategy room
-- [x] HTTP/SOCKS5 proxy support
+- [x] HTTP/SOCKS5 proxy support (KCCP has been removed)
 - [x] Color and light/dark theme support
 - [x] Manifest V3 extensions support
 - [x] Chrome Webstore extensions support
