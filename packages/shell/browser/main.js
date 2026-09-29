@@ -6,7 +6,7 @@ import {
   BrowserWindow,
   Notification,
   ipcMain,
-  Menu,
+  MenuItem,
   nativeTheme,
   dialog,
   webFrameMain,
@@ -536,6 +536,22 @@ class Browser extends EventEmitter {
     console.log(`Built-in KCCP started on ${key}, data in ${hideHome(dataDir)}`)
   }
 
+  tabMenuItems(tabId) {
+    const tab = this.windows.flatMap((w) => w.tabs.tabList).find((t) => t.id == tabId)
+    if (!tab) return []
+    const wc = tab.webContents
+    return [
+      new MenuItem({
+        label: wc.isAudioMuted() ? 'Unmute tab' : 'Mute tab',
+        click: () => {
+          wc.setAudioMuted(!wc.isAudioMuted())
+          // lets chrome.tabs.onUpdated report the new mutedInfo to the tab strip
+          wc.emit('tab-updated')
+        },
+      }),
+    ]
+  }
+
   getFocusedWindow() {
     return this.windows.find((w) => w.window.isFocused()) || this.windows[0]
   }
@@ -861,22 +877,10 @@ class Browser extends EventEmitter {
           )
           break
         }
-        case 'webui-tab-context-menu': {
-          const tab = this.windows.flatMap((w) => w.tabs.tabList).find((t) => t.id == data.tabId)
-          if (!tab) break
-          const wc = tab.webContents
-          Menu.buildFromTemplate([
-            {
-              label: wc.isAudioMuted() ? 'Unmute tab' : 'Mute tab',
-              click: () => {
-                wc.setAudioMuted(!wc.isAudioMuted())
-                // lets chrome.tabs.onUpdated report the new mutedInfo to the tab strip
-                wc.emit('tab-updated')
-              },
-            },
-          ]).popup({ window: BrowserWindow.fromWebContents(ev.sender) })
+        case 'webui-tab-context-menu':
+          // picked up by the tab strip's own context-menu event, which adds the tab items
+          this.tabMenuTarget = { tabId: data.tabId, at: Date.now() }
           break
-        }
         case 'webui-close-tab':
           //console.log('clicked tab X', data)
           this.confirmCloseTab(data.tabId)
@@ -1356,7 +1360,16 @@ class Browser extends EventEmitter {
       this.windowOpenHandler.bind(this)(webContents, details),
     )
 
-    webContents.on('context-menu', (event, params) => {
+    webContents.on('context-menu', async (event, params) => {
+      let tabItems = []
+      if (this.windows.some((w) => w.webContents === webContents)) {
+        // the tab strip reports the clicked tab over IPC, which may land just after this event
+        await delay(30)
+        const target = this.tabMenuTarget
+        this.tabMenuTarget = null
+        if (target && Date.now() - target.at < 1000) tabItems = this.tabMenuItems(target.tabId)
+      }
+
       const menu = buildChromeContextMenu({
         params,
         webContents,
@@ -1375,6 +1388,10 @@ class Browser extends EventEmitter {
         },
       })
 
+      if (tabItems.length) {
+        menu.insert(0, new MenuItem({ type: 'separator' }))
+        tabItems.reverse().forEach((item) => menu.insert(0, item))
+      }
       menu.popup()
     })
 

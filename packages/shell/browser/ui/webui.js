@@ -566,6 +566,7 @@ class WebUI {
   }
   tabContextMenu(tab, ev) {
     this.sendToMain('webui-tab-context-menu', { tabId: tab.id })
+    return true // keep the default context menu; main adds the tab items to it
   }
   browserActionAddressKeyDown(data, event) {
     event = event.originalEvent
