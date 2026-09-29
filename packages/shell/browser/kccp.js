@@ -339,6 +339,11 @@ export async function action(name, data = {}) {
       return
     }
     case 'preload':
+      // preload reads the game version from the cached kcs_const.js
+      if (
+        !fs.existsSync(path.join(k.core.config.getCacheLocation(), 'gadget_html5/js/kcs_const.js'))
+      )
+        throw new Error('Start the game once with KCCP on, then preload')
       return task('Preloading assets', () => require('kccp-src/preload.js').run())
 
     // mods

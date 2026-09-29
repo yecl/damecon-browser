@@ -9,7 +9,12 @@ module.exports = {
   resolve: {
     extensions: ['.js', '.ts', '.jsx', '.tsx', '.css', '.json'],
     // KCCP's package exports only proxy.js; the cache and mod modules are needed too
-    alias: { 'kccp-src': path.dirname(require.resolve('kccacheproxy')) },
+    alias: {
+      'kccp-src': path.dirname(require.resolve('kccacheproxy')),
+      // webpack would pick node-fetch's ESM build, where require() returns a namespace instead of
+      // the fetch function that KCCP's preload.js calls; the CJS build exports both forms
+      'node-fetch$': require.resolve('node-fetch'),
+    },
   },
   plugins: [
     new CopyWebpackPlugin({
