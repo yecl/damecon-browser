@@ -89,248 +89,244 @@
   <div id="settings-content-templates">
 
     <script type="text/html" id="settings-content-0">
-      <h3>Damecon Settings</h3>
-      
-      <ul class="nav nav-tabs">
-        <li class="nav-item">
-          <a class="nav-link" href="#" data-bind="attr: { class: `nav-link${appTab() === appTabs.window ? ' active' : ''}` }, click: () => appTab(appTabs.window)">Window</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="#" data-bind="attr: { class: `nav-link${appTab() === appTabs.kancolle ? ' active' : ''}` }, click: () => appTab(appTabs.kancolle)">KanColle</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="#" data-bind="attr: { class: `nav-link${appTab() === appTabs.application ? ' active' : ''}` }, click: () => appTab(appTabs.application)">Application</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="#" data-bind="attr: { class: `nav-link${appTab() === appTabs.advanced ? ' active' : ''}` }, click: () => appTab(appTabs.advanced)">Advanced</a>
-        </li>
-      </ul>
-      <div class="form-group"></div>
+      <h3>Damecon</h3>
+      <p class="text-muted">Appearance, window behavior and where Damecon keeps its data.</p>
+
+      <div class="btn-group btn-group-sm mb-3" role="group">
+        <button type="button" data-bind="attr: { class: seg(appTab, appTabs.window) }, click: () => appTab(appTabs.window)"><i class="fa-regular fa-window-maximize"></i> Window</button>
+        <button type="button" data-bind="attr: { class: seg(appTab, appTabs.kancolle) }, click: () => appTab(appTabs.kancolle)"><i class="fa-solid fa-anchor"></i> KanColle</button>
+        <button type="button" data-bind="attr: { class: seg(appTab, appTabs.application) }, click: () => appTab(appTabs.application)"><i class="fa-solid fa-hard-drive"></i> Data</button>
+        <button type="button" data-bind="attr: { class: seg(appTab, appTabs.advanced) }, click: () => appTab(appTabs.advanced)"><i class="fa-solid fa-sliders"></i> Advanced</button>
+      </div>
+
       <!-- ko if: appTab() === appTabs.window -->
-      <h5>Style</h5>
+      <h5>Appearance</h5>
       <div class="settings-group">
-        <div class="form-row">
-          <label for="windowstyletheme" class="col-sm-3">Theme</label>
-          <select id="windowstyletheme" class="col form-control" data-bind="options: configSchema.window.style.theme.options, value: config.window.style.theme"></select>
+        <div class="dm-field">
+          <label for="windowstyletheme">Theme</label>
+          <select id="windowstyletheme" class="form-control" data-bind="options: configSchema.window.style.theme.options, value: config.window.style.theme"></select>
         </div>
-        <div class="form-row">
-          <label for="windowstylebright" class="col-sm-3">Brightness</label>
-          <select id="windowstylebright" class="col form-control" data-bind="options: configSchema.window.style.brightness.options, value: config.window.style.brightness"></select>
+        <div class="dm-field">
+          <label>Brightness</label>
+          <div class="btn-group btn-group-sm" role="group">
+            <button type="button" data-bind="attr: { class: seg(config.window.style.brightness, 'system') }, click: () => config.window.style.brightness('system')"><i class="fa-solid fa-circle-half-stroke"></i> System</button>
+            <button type="button" data-bind="attr: { class: seg(config.window.style.brightness, 'light') }, click: () => config.window.style.brightness('light')"><i class="fa-regular fa-sun"></i> Light</button>
+            <button type="button" data-bind="attr: { class: seg(config.window.style.brightness, 'dark') }, click: () => config.window.style.brightness('dark')"><i class="fa-regular fa-moon"></i> Dark</button>
+          </div>
         </div>
       </div>
-      <h5>View</h5>
+
+      <h5>Address bar</h5>
       <div class="settings-group">
-        <div class="form-group">
-          <label>Hide address bar for sites (Alt+A to override)</label>
-          <div class="form-items-scroller">
-            <!-- ko foreach: config.window.view.hideAddressBarSites -->
-            <div class="form-array-string-item input-group">
-              <input type="text" class="form-control" data-bind="value: $rawData" placeholder="e.g. https://tsunkit.net/*">
-              <div class="input-group-append">
-                <button type="button" class="btn btn-secondary" data-bind="click: () => $parent.removeHideAddressBarSite($data)" title="remove this entry"><i class="fa-sharp fa-solid fa-xmark"></i></button>
-              </div>
-            </div>
-            <!-- /ko -->
+        <p class="small text-muted">Hide the address bar on these sites. Wildcards are allowed; Alt+A toggles it anyway.</p>
+        <div class="form-items-scroller">
+          <!-- ko foreach: config.window.view.hideAddressBarSites -->
+          <div class="dm-address mb-1">
+            <input type="text" class="form-control" aria-label="Site" data-bind="value: $rawData" placeholder="e.g. https://tsunkit.net/*">
+            <button type="button" class="btn btn-outline-danger" data-bind="click: () => $parent.removeHideAddressBarSite($data)" title="remove this entry"><i class="fa-sharp fa-solid fa-xmark"></i></button>
           </div>
-          <div class="form-array-string-item add-new form-row">
-            <div class="input-group col col-sm-2">
-              <label for="new-hide-adressbar-site-input">Add site:</label>
-            </div>
-            <div class="input-group col">
-              <input id="new-hide-adressbar-site-input" type="text" class="form-control" data-bind="value: newHideAddressBarSite, valueUpdate: 'afterkeydown'" placeholder="e.g. https://tsunkit.net/*">
-              <div class="input-group-append">
-                <button type="button" class="btn btn-secondary" data-bind="click: addNewHideAddressBarSite, enable: canAddNewHideAddressBarSite" title="add a site to hide addressbar for"><i class="fa-sharp fa-solid fa-plus"></i></button>
-              </div>
-            </div>
-          </div>
+          <!-- /ko -->
         </div>
-        <div class="form-row-gap">
-          <div>
-            <label>Show in tab bar when hidden:</label>
-          </div>
-          <div>
-            <input type="checkbox" id="always-show-extensions" data-bind="checked: config.window.view.alwaysShowExtensions">
-            <label for="always-show-extensions" title="extensions"><i class="fa-solid fa-puzzle-piece"></i></label>
-          </div>
-          <div>
-            <input type="checkbox" id="always-show-goback" data-bind="checked: config.window.view.alwaysShowBack">
-            <label for="always-show-goback" title="go back"><i class="fa-solid fa-arrow-left"></i></label>
-          </div>
-          <div>
-            <input type="checkbox" id="always-show-goforward" data-bind="checked: config.window.view.alwaysShowForward">
-            <label for="always-show-goforward" title="go forward"><i class="fa-solid fa-arrow-right"></i></label>
-          </div>
-          <div>
-            <input type="checkbox" id="always-show-reload" data-bind="checked: config.window.view.alwaysShowReload">
-            <label for="always-show-reload" title="refresh"><i class="fa-solid fa-rotate-right"></i></label>
-          </div>
+        <div class="dm-address mt-2">
+          <input id="new-hide-adressbar-site-input" type="text" class="form-control" aria-label="Add site" data-bind="value: newHideAddressBarSite, valueUpdate: 'afterkeydown'" placeholder="Add a site, e.g. https://tsunkit.net/*">
+          <button type="button" class="btn btn-primary" data-bind="click: addNewHideAddressBarSite, enable: canAddNewHideAddressBarSite" title="add a site to hide the address bar for"><i class="fa-sharp fa-solid fa-plus"></i> Add</button>
+        </div>
+        <label class="small text-muted mt-3 mb-1">Buttons to keep in the tab bar while it's hidden</label>
+        <div class="dm-chips">
+          <label class="dm-chip"><input type="checkbox" data-bind="checked: config.window.view.alwaysShowExtensions"><span><i class="fa-solid fa-puzzle-piece"></i> Extensions</span></label>
+          <label class="dm-chip"><input type="checkbox" data-bind="checked: config.window.view.alwaysShowBack"><span><i class="fa-solid fa-arrow-left"></i> Back</span></label>
+          <label class="dm-chip"><input type="checkbox" data-bind="checked: config.window.view.alwaysShowForward"><span><i class="fa-solid fa-arrow-right"></i> Forward</span></label>
+          <label class="dm-chip"><input type="checkbox" data-bind="checked: config.window.view.alwaysShowReload"><span><i class="fa-solid fa-rotate-right"></i> Reload</span></label>
         </div>
       </div>
       <!-- /ko -->
+
       <!-- ko if: appTab() === appTabs.kancolle -->
+      <h5>DMM</h5>
       <div class="settings-group">
-        <div class="form-group form-check">
-          <input class="form-check-input" id="kancolleforcecookiehack" type="checkbox" data-bind="checked: config.kancolle.forceCookieHack">
-          <label class="form-check-label" for="kancolleforcecookiehack">Force DMM region cookie hack (experimental)</label>
-        </div>
+        <label class="dm-switch">
+          <input type="checkbox" data-bind="checked: config.kancolle.forceCookieHack">
+          <span class="slider"></span>
+          <span>Force DMM region cookie</span>
+        </label>
+        <p class="small text-muted mb-0">Experimental. Keeps DMM's region cookie set so the game page doesn't reject you for being outside Japan.</p>
       </div>
       <!-- /ko -->
+
       <!-- ko if: appTab() === appTabs.application -->
+      <h5>Data location</h5>
       <div class="settings-group">
-        <div class="form-group form-check">
-          <input class="form-check-input" id="appupdatesremoveold" type="checkbox" data-bind="checked: config.app.update.removeOld">
-          <label class="form-check-label" for="appupdatesremoveold">Clear old app files on update</label>
-        </div>
-        <div class="form-row">
-          <label for="appdatalocation" class="col-sm-3">User data location</label>
-          <select id="appdatalocation" class="col form-control" data-bind="options: configSchema.app.data.location.options, value: config.app.data.location"></select>
+        <div class="btn-group btn-group-sm mb-2" role="group">
+          <button type="button" data-bind="attr: { class: seg(config.app.data.location, 'appdata') }, click: () => config.app.data.location('appdata')">App data</button>
+          <button type="button" data-bind="attr: { class: seg(config.app.data.location, 'home') }, click: () => config.app.data.location('home')">Home folder</button>
+          <button type="button" data-bind="attr: { class: seg(config.app.data.location, 'appdir') }, click: () => config.app.data.location('appdir')">Next to the app</button>
+          <button type="button" data-bind="attr: { class: seg(config.app.data.location, 'custom') }, click: () => config.app.data.location('custom')">Custom</button>
         </div>
         <!-- ko if: config.app.data.location() != 'custom' -->
-        <div class="form-group">
-          <div class="form-group"></div>
-          <span>Path:</span>
-          <span class="sensitive">
-            <!-- ko if: config.app.data.location() == 'home' -->
-            <span class="selectable" data-bind="text: paths.home"></span>
-            <!-- /ko -->
-            <!-- ko if: config.app.data.location() == 'appdata' -->
-            <span class="selectable" data-bind="text: paths.appData"></span>
-            <!-- /ko -->
-            <!-- ko if: config.app.data.location() == 'appdir' -->
-            <span class="selectable" data-bind="text: paths.app"></span>
-            <!-- /ko -->
-          </span>
-        </div>
+        <p class="small mb-2">
+          <span class="text-muted">Path:</span>
+          <code class="sensitive selectable" data-bind="text: dataPath()"></code>
+        </p>
         <!-- /ko -->
         <!-- ko if: config.app.data.location() == 'custom' -->
-        <div class="form-row">
-          <label for="appdatacustompath" class="col-sm-4">Custom location</label>
-          <div class="input-group col">
-            <input type="text" id="appdatacustompath" class="form-control sensitive" data-bind="value: config.app.data.customPath"/>
-            <div class="input-group-append">
-              <button type="button" class="btn btn-secondary" data-bind="click: getCustomDataPath">Browse</button>
-            </div>
-          </div>
+        <div class="dm-address mb-2">
+          <input type="text" id="appdatacustompath" class="form-control sensitive" aria-label="Custom data location" data-bind="value: config.app.data.customPath" placeholder="Choose a folder">
+          <button type="button" class="btn btn-outline-secondary" data-bind="click: getCustomDataPath"><i class="fa-regular fa-folder-open"></i> Browse</button>
         </div>
         <!-- /ko -->
-        <div class="form-group"></div>
-        <div class="form-group">
-          <span>Note: You will need to close and restart Damecon for the data location setting to take effect.</span>
-        </div>
+        <p class="small text-muted mb-0">Restart Damecon for a new location to take effect.</p>
       </div>
-      <div class="form-group">
-        <button type="button" class="btn btn-secondary" data-bind="click: clearSessionCache">Clear browser cache</button>
+      <h5>Maintenance</h5>
+      <div class="settings-group">
+        <label class="dm-switch">
+          <input type="checkbox" data-bind="checked: config.app.update.removeOld">
+          <span class="slider"></span>
+          <span>Clear old app files on update</span>
+        </label>
+        <div class="dm-tools mt-2 mb-0">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: clearSessionCache"><i class="fa-solid fa-broom"></i> Clear browser cache</button>
+        </div>
       </div>
       <!-- /ko -->
+
       <!-- ko if: appTab() === appTabs.advanced -->
-      <p>Damecon must be restarted for these settings to take effect.</p>
+      <div class="settings-group dm-notice">
+        <i class="fa-solid fa-rotate"></i>
+        <span>Restart Damecon for these settings to take effect.</span>
+      </div>
       <h5>Behavior</h5>
       <div class="settings-group">
-        <div class="form-group form-check">
-          <input class="form-check-input" id="confirmclose" type="checkbox" data-bind="checked: config.window.behavior.confirmCloseGamePage">
-          <label class="form-check-label" for="confirmclose">Confirm before closing game page tabs</label>
-        </div>
-        <div class="form-group form-check">
-          <input class="form-check-input" id="backgroundocclusion" type="checkbox" data-bind="checked: config.window.behavior.occlusion">
-          <label class="form-check-label" for="backgroundocclusion">Throttle activity when running in background</label>
-        </div>
+        <label class="dm-switch">
+          <input type="checkbox" data-bind="checked: config.window.behavior.confirmCloseGamePage">
+          <span class="slider"></span>
+          <span>Confirm before closing game tabs</span>
+        </label>
+        <label class="dm-switch">
+          <input type="checkbox" data-bind="checked: config.window.behavior.occlusion">
+          <span class="slider"></span>
+          <span>Throttle activity when running in the background</span>
+        </label>
       </div>
       <h5>Graphics</h5>
       <div class="settings-group">
-        <div class="form-group form-check">
-          <label class="form-check-label" class="col-sm-8" for="availablegpumemory">Available GPU memory (MB)</label>
-          <input id="availablegpumemory" type="number" class="col form-control" data-bind="value: config.window.gpu.availableMemoryMb" placeholder="10000" min="256" max="64000">
+        <div class="dm-field">
+          <label for="availablegpumemory">GPU memory</label>
+          <div class="dm-address">
+            <input id="availablegpumemory" type="number" class="form-control port" data-bind="value: config.window.gpu.availableMemoryMb" placeholder="10000" min="256" max="64000">
+            <span class="text-muted">MB</span>
+          </div>
         </div>
-        <div class="form-group form-check">
-          <input class="form-check-input" id="rasterization" type="checkbox" data-bind="checked: config.window.gpu.rasterization">
-          <label class="form-check-label" for="rasterization">Force GPU rasterization</label>
-        </div>
-        <div class="form-group form-check">
-          <input class="form-check-input" id="nativebuffers" type="checkbox" data-bind="checked: config.window.gpu.nativeBuffers">
-          <label class="form-check-label" for="nativebuffers">Enable native GPU memory buffers</label>
-        </div>
-        <div class="form-group form-check">
-          <input class="form-check-input" id="compositorresources" type="checkbox" data-bind="checked: config.window.gpu.compositorResources">
-          <label class="form-check-label" for="compositorresources">Enable GPU memory buffer compositor resources</label>
-        </div>
+        <label class="dm-switch">
+          <input type="checkbox" data-bind="checked: config.window.gpu.rasterization">
+          <span class="slider"></span>
+          <span>Force GPU rasterization</span>
+        </label>
+        <label class="dm-switch">
+          <input type="checkbox" data-bind="checked: config.window.gpu.nativeBuffers">
+          <span class="slider"></span>
+          <span>Native GPU memory buffers</span>
+        </label>
+        <label class="dm-switch">
+          <input type="checkbox" data-bind="checked: config.window.gpu.compositorResources">
+          <span class="slider"></span>
+          <span>GPU memory buffer compositor resources</span>
+        </label>
       </div>
       <!-- /ko -->
     </script>
 
     <script type="text/html" id="settings-content-1">
-      <h3>KC3Kai Settings</h3>
+      <h3>KC3Kai</h3>
+      <p class="text-muted">What opens when Damecon starts, and how KC3Kai is kept up to date.</p>
+
+      <h5>Startup</h5>
       <div class="settings-group">
-        <div class="form-row">
-          <label for="kc3gamepage" class="col-sm-3">Game startup page</label>
-          <select id="kc3gamepage" class="col form-control" data-bind="options: configSchema.kc3kai.startup.gamePage.options, value: config.kc3kai.startup.gamePage"></select>
+        <div class="dm-field">
+          <label>Open game</label>
+          <div class="btn-group btn-group-sm" role="group">
+            <button type="button" data-bind="attr: { class: seg(config.kc3kai.startup.gamePage, 'kc3') }, click: () => config.kc3kai.startup.gamePage('kc3')">KC3 start page</button>
+            <button type="button" data-bind="attr: { class: seg(config.kc3kai.startup.gamePage, 'dmm') }, click: () => config.kc3kai.startup.gamePage('dmm')">DMM game page</button>
+            <button type="button" data-bind="attr: { class: seg(config.kc3kai.startup.gamePage, 'none') }, click: () => config.kc3kai.startup.gamePage('none')">Nothing</button>
+          </div>
         </div>
-        <div class="form-check">
-          <input class="form-check-input" id="kc3opendevtools" type="checkbox" data-bind="checked: config.kc3kai.startup.openDevtools">
-          <label class="form-check-label" for="kc3opendevtools">Auto-open devtools</label>
-        </div>
+        <label class="dm-switch">
+          <input type="checkbox" data-bind="checked: config.kc3kai.startup.openStratRoom">
+          <span class="slider"></span>
+          <span>Open the Strategy Room</span>
+        </label>
+        <label class="dm-switch">
+          <input type="checkbox" data-bind="checked: config.kc3kai.startup.openDevtools">
+          <span class="slider"></span>
+          <span>Open DevTools with the KC3 panel</span>
+        </label>
         <!-- ko if: config.kc3kai.startup.openDevtools() -->
-        <div class="form-row">
-          <label for="kc3opendevtoolsdelay" class="col-sm-6">Devtools open delay (seconds):</label>
-          <input id="kc3opendevtoolsdelay" type="number" class="col form-control" data-bind="value: config.kc3kai.startup.openDevtoolsDelay" min="0" step="0.5" max="10">
+        <div class="dm-field dm-indent">
+          <label for="kc3opendevtoolsdelay">Delay</label>
+          <div class="dm-address">
+            <input id="kc3opendevtoolsdelay" type="number" class="form-control port" data-bind="value: config.kc3kai.startup.openDevtoolsDelay" min="0" step="0.5" max="10">
+            <span class="text-muted">seconds</span>
+          </div>
         </div>
         <!-- /ko -->
-        <div class="form-check">
-          <input class="form-check-input" id="kc3openstratroom" type="checkbox" data-bind="checked: config.kc3kai.startup.openStratRoom">
-          <label class="form-check-label" for="kc3openstratroom">Auto-open strategy room</label>
-        </div>
-        <div class="form-check">
-          <input class="form-check-input" id="kc3devtoolsrecordnetworklog" type="checkbox" data-bind="checked: config.kc3kai.startup.devtoolsRecordNetworkLog">
-          <label class="form-check-label" for="kc3devtoolsrecordnetworklog">Record network log in DevTools (uses more memory; KC3 works either way)</label>
-        </div>
+        <label class="dm-switch">
+          <input type="checkbox" data-bind="checked: config.kc3kai.startup.devtoolsRecordNetworkLog">
+          <span class="slider"></span>
+          <span>Record the network log in DevTools</span>
+        </label>
+        <p class="small text-muted mb-0">Uses more memory in long sessions. KC3 reads the game either way.</p>
       </div>
+
+      <h5>Updates</h5>
       <div class="settings-group">
-        <div class="form-row">
-          <label for="kc3updatechannel" class="col-sm-3">Update channel</label>
-          <select id="kc3updatechannel" class="col form-control" data-bind="options: configSchema.kc3kai.update.channel.options, value: config.kc3kai.update.channel, enable: canSetKc3Channel"></select>
+        <div class="dm-field">
+          <label>Channel</label>
+          <div class="btn-group btn-group-sm" role="group">
+            <!-- ko foreach: [['release', 'Release'], ['master', 'Master'], ['develop', 'Develop'], ['custom1', 'Custom 1'], ['custom2', 'Custom 2']] -->
+            <button type="button" data-bind="attr: { class: $root.seg($root.config.kc3kai.update.channel, $data[0]) }, enable: $root.canSetKc3Channel, click: () => $root.config.kc3kai.update.channel($data[0]), text: $data[1]"></button>
+            <!-- /ko -->
+          </div>
         </div>
+        <p class="small text-muted">Release is the stable build. Master and Develop are in development and take a few minutes to install the first time. Custom uses a KC3 folder of your own.</p>
+
         <!-- ko if: !config.kc3kai.update.channel()?.startsWith('custom') -->
-        <div class="form-row">
-          <label for="kc3updateschedule" class="col-sm-3">Update schedule</label>
-          <select id="kc3updateschedule" class="col form-control" data-bind="options: configSchema.kc3kai.update.schedule.options, value: config.kc3kai.update.schedule"></select>
+        <div class="dm-field">
+          <label>Check</label>
+          <div class="btn-group btn-group-sm" role="group">
+            <button type="button" data-bind="attr: { class: seg(config.kc3kai.update.schedule, 'startup') }, click: () => config.kc3kai.update.schedule('startup')">Every start</button>
+            <button type="button" data-bind="attr: { class: seg(config.kc3kai.update.schedule, 'daily') }, click: () => config.kc3kai.update.schedule('daily')">Daily</button>
+            <button type="button" data-bind="attr: { class: seg(config.kc3kai.update.schedule, 'weekly') }, click: () => config.kc3kai.update.schedule('weekly')">Weekly</button>
+          </div>
         </div>
-        <div class="form-check">
-          <input class="form-check-input" id="kc3updatesauto" type="checkbox" data-bind="checked: config.kc3kai.update.auto">
-          <label class="form-check-label" for="kc3updatesauto">Download/apply updates automatically</label>
-        </div>
+        <label class="dm-switch">
+          <input type="checkbox" data-bind="checked: config.kc3kai.update.auto">
+          <span class="slider"></span>
+          <span>Install updates automatically</span>
+        </label>
         <!-- /ko -->
         <!-- ko if: config.kc3kai.update.channel() === 'custom1' -->
-        <div class="form-row">
-          <label for="kc3custom1location" class="col-sm-3">Location</label>
-          <div class="input-group col">
-            <input type="text" id="kc3custom1location" class="form-control sensitive" data-bind="value: config.kc3kai.custom1Location"/>
-            <div class="input-group-append">
-              <button type="button" class="btn btn-secondary" data-bind="click: getCustomKc3Path">Browse</button>
-            </div>
-          </div>
+        <div class="dm-address">
+          <input type="text" id="kc3custom1location" class="form-control sensitive" aria-label="Custom 1 location" data-bind="value: config.kc3kai.custom1Location" placeholder="KC3Kai folder">
+          <button type="button" class="btn btn-outline-secondary" data-bind="click: getCustomKc3Path"><i class="fa-regular fa-folder-open"></i> Browse</button>
         </div>
         <!-- /ko -->
         <!-- ko if: config.kc3kai.update.channel() === 'custom2' -->
-        <div class="form-row">
-          <label for="kc3custom2location" class="col-sm-3">Location</label>
-          <div class="input-group col">
-            <input type="text" id="kc3custom2location" class="form-control sensitive" data-bind="value: config.kc3kai.custom2Location"/>
-            <div class="input-group-append">
-              <button type="button" class="btn btn-secondary" data-bind="click: getCustomKc3Path">Browse</button>
-            </div>
-          </div>
+        <div class="dm-address">
+          <input type="text" id="kc3custom2location" class="form-control sensitive" aria-label="Custom 2 location" data-bind="value: config.kc3kai.custom2Location" placeholder="KC3Kai folder">
+          <button type="button" class="btn btn-outline-secondary" data-bind="click: getCustomKc3Path"><i class="fa-regular fa-folder-open"></i> Browse</button>
         </div>
         <!-- /ko -->
+
+        <div class="dm-tools mt-3 mb-0">
+          <button class="btn btn-primary btn-sm" type="button" data-bind="click: kc3CheckForUpdates, enable: canUpdateKc3">
+            <i class="fa-solid fa-rotate"></i>
+            <span data-bind="text: config.kc3kai.update.channel()?.startsWith('custom') ? 'Reload KC3' : 'Check for updates & reload'"></span>
+          </button>
+          <span class="small text-muted align-self-center">Closes any open KC3 tabs.</span>
+        </div>
+        <div class="dm-error" data-bind="visible: kc3UpdateError">
+          <i class="fa-solid fa-triangle-exclamation"></i> <span data-bind="text: kc3UpdateError"></span>
+        </div>
       </div>
-      <div class="form-group">
-        <!-- ko if: !config.kc3kai.update.channel()?.startsWith('custom') -->
-        <button class="btn btn-secondary" type="button" data-bind="click: kc3CheckForUpdates, enable: canUpdateKc3">Check for updates & reload</button>
-        <!-- /ko -->
-        <!-- ko if: config.kc3kai.update.channel()?.startsWith('custom') -->
-        <button class="btn btn-secondary" type="button" data-bind="click: kc3CheckForUpdates, enable: canUpdateKc3">Reload</button>
-        <!-- /ko -->
-        <div class="text-danger small mt-1" data-bind="visible: kc3UpdateError, text: kc3UpdateError"></div>
-      </div>
-      <p>Note: reloading will automatically close any currently-open KC3 tabs.</p>
     </script>
 
     <script type="text/html" id="settings-content-2">
@@ -632,36 +628,40 @@
     </script>
 
     <script type="text/html" id="settings-content-3">
-      <h3>Downloads
-        <button type="button" class="btn btn-secondary btn-sm" data-bind="click: () => chrome.downloads.showDefaultFolder()" title="open downloads folder"><i class="fa-solid fa-folder"></i></button>
-        <button type="button" class="btn btn-secondary btn-sm" data-bind="click: () => clearFinishedDownloads()" title="clear finished downloads"><i class="fa-regular fa-trash-can"></i></button>
-      </h3>
-      <div class="settings-group form-items-scroller">
+      <h3>Downloads</h3>
+      <div class="dm-tools">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: () => chrome.downloads.showDefaultFolder()"><i class="fa-regular fa-folder-open"></i> Downloads folder</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: () => clearFinishedDownloads(), enable: downloads().length"><i class="fa-solid fa-broom"></i> Clear finished</button>
+      </div>
+      <div class="settings-group form-items-scroller dm-downloads">
         <!-- ko foreach: downloads -->
-        <div class="download-item" data-bind="click: open">
+        <div class="download-item" data-bind="click: open, attr: { title: state() === 'complete' ? 'open' : '' }">
           <div class="download-info">
+            <i data-bind="attr: { class: `dm-file-icon fa-regular ${state() === 'complete' ? 'fa-file-lines' : state() === 'interrupted' ? 'fa-file-circle-xmark' : 'fa-file-arrow-down'}` }"></i>
             <span class="download-label">
               <label class="filename" data-bind="text: file"></label>
               <span class="bytes-received">
                 <!-- ko if: state() == 'in_progress' && totalBytes() > 0 -->
-                <label data-bind="text: `${received()}/${total()}`"></label>
+                <label data-bind="text: `${received()} / ${total()}`"></label>
                 <!-- /ko -->
                 <!-- ko if: state() == 'in_progress' && !totalBytes -->
                 <label data-bind="text: received"></label>
                 <!-- /ko -->
-                <!-- ko if: ['complete','interrupted'].includes(state()) -->
+                <!-- ko if: state() == 'complete' -->
                 <label data-bind="text: total"></label>
-                <label data-bind="text: `(${state()})`"></label>
+                <!-- /ko -->
+                <!-- ko if: state() == 'interrupted' -->
+                <label class="text-danger">Failed</label>
                 <!-- /ko -->
                 <!-- ko if: paused() -->
-                <label data-bind="text: ' (paused)'"></label> 
+                <label>· Paused</label>
                 <!-- /ko -->
               </span>
             </span>
             <div class="controls">
               <!-- ko if: state() === 'in_progress' && !paused() -->
               <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: pause, clickBubble: false" title="pause"><i class="fa-solid fa-pause"></i></button>
-              <!-- /ko --> 
+              <!-- /ko -->
               <!-- ko if: canResume() -->
               <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: resume, clickBubble: false" title="resume"><i class="fa-solid fa-play"></i></button>
               <!-- /ko -->
@@ -669,28 +669,27 @@
               <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: openFolder, clickBubble: false" title="show in folder"><i class="fa-solid fa-folder-open"></i></button>
               <button type="button" class="btn btn-outline-danger btn-sm" data-bind="click: deleteFile, clickBubble: false" title="delete file"><i class="fa-regular fa-trash-can"></i></button>
               <!-- /ko -->
-              <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: erase, clickBubble: false" title="remove entry"><i class="fa-solid fa-xmark"></i></button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: erase, clickBubble: false" title="remove from list"><i class="fa-solid fa-xmark"></i></button>
             </div>
           </div>
           <div class="download-progress">
             <!-- ko if: typeof progressPct() !== 'undefined' && progressPct() < 1 -->
             <div class="progress">
-              <div class="progress-bar progress-bar-striped progress-bar-animated" title="progress bar" role="progressbar" data-bind="style: { width: progressPct()*100 + '%'}"></div>
+              <div class="progress-bar" title="progress bar" role="progressbar" data-bind="style: { width: progressPct()*100 + '%'}"></div>
             </div>
             <!-- /ko -->
             <!-- ko if: typeof progressPct() === 'undefined' -->
             <div class="progress">
-              <div class="progress-bar progress-bar-striped progress-bar-animated" title="progress bar" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
+              <div class="progress-bar progress-bar-striped progress-bar-animated" title="progress bar" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%"></div>
             </div>
             <!-- /ko -->
           </div>
         </div>
         <!-- /ko -->
         <!-- ko if: !downloads().length -->
-        <div class="form-group">
-          <div>
-            <label>When you download files, they'll show up here.</label>
-          </div>
+        <div class="dm-empty">
+          <i class="fa-solid fa-download"></i>
+          <span>Files you download will show up here.</span>
         </div>
         <!-- /ko -->
       </div>

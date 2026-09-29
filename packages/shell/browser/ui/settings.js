@@ -82,6 +82,14 @@ class Settings {
     { name: 'KCFixes', authors: ['Tibowl'], url: 'https://github.com/Tibowl/KCFixes' },
   ]
 
+  dataPath = () =>
+    ({ home: this.paths.home, appdata: this.paths.appData, appdir: this.paths.app })[
+      this.config.app.data.location()
+    ]
+
+  // class for a segmented-control button bound to an observable option
+  seg = (option, value) => `btn ${option() === value ? 'btn-primary' : 'btn-outline-primary'}`
+
   proxyLabel = () => {
     const p = this.config.proxy
     if (!p.enable()) return 'Direct'

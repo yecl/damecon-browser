@@ -381,7 +381,8 @@ input.sensitive:focus {
   border-right: 0;
 }
 .dm-switch {
-  display: inline-flex;
+  display: flex;
+  width: fit-content;
   align-items: center;
   gap: 10px;
   cursor: pointer;
@@ -497,11 +498,13 @@ input.sensitive:focus {
   gap: 6px;
   margin-bottom: 8px;
 }
-.dm-tools .btn-outline-secondary {
+.dm-tools .btn-outline-secondary,
+.dm-address .btn-outline-secondary {
   color: var(--content-text-color);
   border-color: #7f7f7f80;
 }
-.dm-tools .btn-outline-secondary:hover:not(:disabled) {
+.dm-tools .btn-outline-secondary:hover:not(:disabled),
+.dm-address .btn-outline-secondary:hover:not(:disabled) {
   background: #7f7f7f33;
 }
 .dm-tools .btn i,
@@ -545,4 +548,86 @@ input.sensitive:focus {
 }
 .dm-log-line.trace {
   color: #dcdcaa;
+}
+
+/* Damecon / KC3Kai / Downloads pages */
+.dm-field {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-bottom: 12px;
+}
+.dm-field > label {
+  flex: 0 0 150px;
+  margin: 0;
+}
+.dm-field > select.form-control {
+  flex: 1;
+  min-width: 160px;
+}
+.dm-indent {
+  margin-left: 46px;
+}
+.dm-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.dm-chip {
+  margin: 0;
+  cursor: pointer;
+}
+.dm-chip input {
+  position: absolute;
+  opacity: 0;
+}
+.dm-chip span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid #7f7f7f80;
+  font-size: small;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.dm-chip input:checked + span {
+  background: #007bff;
+  border-color: #007bff;
+  color: #fff;
+}
+.dm-chip input:focus-visible + span {
+  outline: 2px solid #007bff80;
+  outline-offset: 2px;
+}
+.dm-downloads .download-item {
+  border-radius: 6px;
+}
+.dm-downloads .download-info {
+  align-items: center;
+  gap: 10px;
+}
+.dm-file-icon {
+  font-size: 1.3rem;
+  opacity: 0.7;
+  width: 1.3rem;
+  text-align: center;
+}
+.dm-downloads .progress {
+  height: 4px;
+  margin-top: 6px;
+}
+.dm-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 30px 0;
+  opacity: 0.6;
+}
+.dm-empty i {
+  font-size: 2rem;
 }
