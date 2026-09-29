@@ -1,5 +1,6 @@
 const path = require('path')
 const fs = require('fs/promises')
+const { execFileSync } = require('child_process')
 
 module.exports = {
   packagerConfig: {
@@ -70,6 +71,14 @@ module.exports = {
         }
       } catch (error) {
         console.log('Error copying extensions', error)
+      }
+
+      // Electron's binary only carries a linker ad-hoc signature that doesn't cover the bundle,
+      // so a downloaded copy is reported as "damaged". Sealing the whole bundle turns that into
+      // the regular "unidentified developer" prompt that System Settings can allow.
+      if (options.platform === 'darwin') {
+        const app = path.join(options.outputPaths[0], `${config.packagerConfig.name}.app`)
+        execFileSync('codesign', ['--force', '--deep', '--sign', '-', app], { stdio: 'inherit' })
       }
     },
   },

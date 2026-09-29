@@ -38,7 +38,9 @@ Requires macOS 13 (Ventura) or later, on Apple Silicon.
 
 From the [Releases page](https://github.com/yecl/damecon-browser/releases/latest), download `damecon-browser-*-arm64.dmg`, open it and drag Damecon to Applications.
 
-The build is not notarized, so on first launch right-click the app and choose Open (or clear the quarantine flag with `xattr -dr com.apple.quarantine /Applications/damecon-browser.app`).
+The build is signed ad-hoc but not notarized, so macOS blocks the first launch as coming from an unidentified developer. Open it once, then go to System Settings → Privacy & Security and click `Open Anyway` (on macOS 14 and older, right-clicking the app and choosing Open also works).
+
+If macOS instead says the app is damaged (older builds), remove the download quarantine flag: `xattr -dr com.apple.quarantine /Applications/damecon-browser.app`.
 
 ### From source code, using `yarn`:
 
