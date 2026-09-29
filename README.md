@@ -6,18 +6,6 @@ Built on [electron-browser-shell](https://github.com/samuelmaddock/electron-brow
 
 ![browser preview image showing a typical setup with the game open, KC3Kai visible in the developer tools panel, and some tools open in background tabs.](./screenshots/ingame.png)
 
-## ⚠️ Notice
-
-#### Damecon is NOT intended to be used as a general-purpose browser.
-
-Damecon is designed for one purpose only, and that is playing KanColle.
-
-Damecon is built upon Electron, and lacks many of the security features of major browsers. Plus, I have no idea what I'm doing.
-
-Seriously, I've literally never worked with Electron before. There's some real spaghetti-tier code going on here. Do you really wanna put your trust in that?
-
-#### If you use Damecon for any activities involving sensitive information, you do so at your own risk.
-
 ## About this fork
 
 This is a fork of [planetarian/damecon-browser](https://github.com/planetarian/damecon-browser), **focused on macOS** (Apple Silicon first).
@@ -29,6 +17,18 @@ This is a fork of [planetarian/damecon-browser](https://github.com/planetarian/d
 - The app auto-updater is removed, because it pointed at upstream's update server. Update by downloading a new release. KC3Kai still updates itself.
 
 See the [Releases page](https://github.com/yecl/damecon-browser/releases) for the full list of changes.
+
+## ⚠️ Notice
+
+#### Damecon is NOT intended to be used as a general-purpose browser.
+
+Damecon is designed for one purpose only, and that is playing KanColle.
+
+Damecon is built upon Electron, and lacks many of the security features of major browsers. Plus, I have no idea what I'm doing.
+
+Seriously, I've literally never worked with Electron before. There's some real spaghetti-tier code going on here. Do you really wanna put your trust in that?
+
+#### If you use Damecon for any activities involving sensitive information, you do so at your own risk.
 
 ## Usage
 
