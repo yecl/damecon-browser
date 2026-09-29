@@ -319,3 +319,230 @@ input.sensitive:focus {
 .selectable {
   user-select: all;
 }
+
+/* proxy page */
+.route-map .route + .route {
+  margin-top: 14px;
+}
+.route-map .route-source {
+  font-size: small;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.route-map .route-hops {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 6px;
+}
+.route-map .hop {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: small;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+.route-map .hop img {
+  width: 18px;
+  height: 18px;
+}
+.route-map .hop.on {
+  background: #007bff;
+  color: #fff;
+}
+.route-map a.hop.on:hover {
+  background: #0062cc;
+  text-decoration: none;
+}
+.route-map .hop.off {
+  border: 1px dashed #7f7f7f80;
+  opacity: 0.75;
+}
+.route-map .hop.end {
+  background: #7f7f7f22;
+}
+.route-map .hop-arrow {
+  width: 22px;
+  height: 2px;
+  margin: 0 4px;
+  background: #7f7f7f80;
+  position: relative;
+}
+.route-map .hop-arrow::after {
+  content: '';
+  position: absolute;
+  right: -1px;
+  top: -4px;
+  border: 5px solid transparent;
+  border-left-color: #7f7f7f80;
+  border-right: 0;
+}
+.dm-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.dm-switch input {
+  position: absolute;
+  opacity: 0;
+}
+.dm-switch .slider {
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: #7f7f7f66;
+  position: relative;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.dm-switch .slider::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.15s;
+}
+.dm-switch input:checked + .slider {
+  background: #007bff;
+}
+.dm-switch input:checked + .slider::after {
+  transform: translateX(16px);
+}
+.dm-switch input:focus-visible + .slider {
+  outline: 2px solid #007bff80;
+  outline-offset: 2px;
+}
+.dm-address {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.dm-address .port {
+  flex: 0 0 110px;
+}
+.dm-disabled {
+  opacity: 0.5;
+}
+
+/* KCCP page */
+.dm-notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.dm-notice > span {
+  flex-grow: 1;
+}
+.dm-status-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.dm-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #dc3545;
+}
+.dm-dot.on {
+  background: #28a745;
+  box-shadow: 0 0 0 3px #28a74533;
+}
+.dm-busy {
+  margin-left: auto;
+  font-size: small;
+  color: #007bff;
+}
+.dm-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(95px, 1fr));
+  gap: 8px;
+}
+.dm-stat {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #7f7f7f14;
+}
+.dm-stat .value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.dm-stat .label {
+  font-size: small;
+  opacity: 0.7;
+}
+.dm-error {
+  margin-top: 12px;
+  font-size: small;
+  color: #dc3545;
+}
+.dm-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.dm-tools .btn-outline-secondary {
+  color: var(--content-text-color);
+  border-color: #7f7f7f80;
+}
+.dm-tools .btn-outline-secondary:hover:not(:disabled) {
+  background: #7f7f7f33;
+}
+.dm-tools .btn i,
+.btn-group .btn i {
+  margin-right: 4px;
+}
+.dm-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 4px;
+}
+.dm-row + .dm-row {
+  border-top: 1px solid #7f7f7f22;
+}
+.dm-log {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  border-radius: 6px;
+  padding: 10px 12px;
+  max-height: 480px;
+  overflow-y: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  user-select: text;
+}
+.dm-log-line {
+  overflow-wrap: anywhere;
+  padding: 1px 0;
+}
+.dm-log-line .msg {
+  white-space: pre-wrap;
+}
+.dm-log-line .time {
+  color: #7f7f7f;
+  margin-right: 8px;
+}
+.dm-log-line.error {
+  color: #f48771;
+}
+.dm-log-line.trace {
+  color: #dcdcaa;
+}

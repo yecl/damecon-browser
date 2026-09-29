@@ -502,7 +502,7 @@ class Browser extends EventEmitter {
     http.globalAgent = agent || defaultAgents.http
     https.globalAgent = agent || defaultAgents.https
 
-    await this.syncInternalKccp(kccp)
+    await this.syncInternalKccp()
 
     // Sync proxy settings to worker threads (for Node.js fetch)
     if (this.updateWorker) {
@@ -510,7 +510,16 @@ class Browser extends EventEmitter {
     }
   }
 
-  async syncInternalKccp(kccp) {
+  // Settings changes can call this concurrently; overlapping starts would leave an orphaned
+  // KCCP holding the port, so run one at a time against the latest config.
+  syncInternalKccp() {
+    this.kccpSync = (this.kccpSync || Promise.resolve())
+      .then(() => this.doSyncInternalKccp(configStore.get('proxy.kccp')))
+      .catch((error) => console.error('Built-in KCCP failed to start:', error))
+    return this.kccpSync
+  }
+
+  async doSyncInternalKccp(kccp) {
     const wanted = kccp.enable && kccp.mode === 'internal'
     const key = `${kccp.host}:${kccp.port}`
     if (this.kccpKey && (!wanted || this.kccpKey !== key)) {

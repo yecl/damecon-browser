@@ -68,7 +68,6 @@ class Settings {
   kccpError = ko.observable('')
   kccpLog = ko.observableArray([])
   kccpGitUrl = ko.observable('')
-  kccpLogBadges = { log: 'secondary', error: 'danger', trace: 'warning' }
   kccpRecommendedMods = [
     {
       name: 'English Patch',
@@ -82,6 +81,20 @@ class Settings {
     },
     { name: 'KCFixes', authors: ['Tibowl'], url: 'https://github.com/Tibowl/KCFixes' },
   ]
+
+  proxyLabel = () => {
+    const p = this.config.proxy
+    if (!p.enable()) return 'Direct'
+    return `${p.mode() === 'socks5-proxy' ? 'SOCKS5' : 'HTTP'} ${p.client.host()}:${p.client.port()}`
+  }
+  kccpLabel = () => {
+    const k = this.config.proxy.kccp
+    return `KCCP ${k.mode() === 'internal' ? 'built-in' : 'external'} ${k.host()}:${k.port()}`
+  }
+  // external KCCP makes its own connections, so Damecon's proxy isn't in that hop
+  kccpUpstreamOn = () => this.config.proxy.kccp.mode() === 'internal' && this.config.proxy.enable()
+  kccpUpstreamLabel = () =>
+    this.config.proxy.kccp.mode() === 'internal' ? this.proxyLabel() : "KCCP's own network"
 
   isBuiltinKccp = () =>
     this.settingsInitialized() &&

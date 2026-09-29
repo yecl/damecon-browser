@@ -334,229 +334,278 @@
     </script>
 
     <script type="text/html" id="settings-content-2">
-      <h3>Proxy Settings</h3>
-      <div class="settings-group">
-        <div class="form-check form-row row">
-          <div class="form-check col-sm-2">
-            <input class="form-check-input" id="proxyenable" type="checkbox" data-bind="checked: config.proxy.enable">
-            <label class="form-check-label" for="proxyenable">Enabled</label>
+      <h3>Proxy</h3>
+      <p class="text-muted">How Damecon reaches the internet. KCCP can sit in front of the proxy for game servers.</p>
+
+      <div class="settings-group route-map">
+        <div class="route">
+          <div class="route-source"><i class="fa-solid fa-globe"></i> Websites, logins, updates</div>
+          <div class="route-hops">
+            <span class="hop-arrow"></span>
+            <span data-bind="attr: { class: `hop ${config.proxy.enable() ? 'on' : 'off'}` }">
+              <i class="fa-solid fa-circle-nodes"></i> <span data-bind="text: proxyLabel()"></span>
+            </span>
+            <span class="hop-arrow"></span>
+            <span class="hop end"><i class="fa-solid fa-earth-asia"></i> Internet</span>
           </div>
-          <div class="form-check col">
-            <label for="proxymode" class="form-check-label">Mode</label>
-            <select id="proxymode" class="col form-control" data-bind="options: configSchema.proxy.mode.options, value: config.proxy.mode"></select>
+        </div>
+        <div class="route">
+          <div class="route-source"><i class="fa-solid fa-anchor"></i> Game servers</div>
+          <div class="route-hops">
+            <span class="hop-arrow"></span>
+            <!-- ko if: config.proxy.kccp.enable() -->
+            <a href="#" class="hop on kccp" data-bind="click: () => selectedConfigPage(4)" title="KCCP settings">
+              <img src="assets/icons/kccp.png" alt=""> <span data-bind="text: kccpLabel()"></span>
+            </a>
+            <span class="hop-arrow"></span>
+            <span data-bind="attr: { class: `hop ${kccpUpstreamOn() ? 'on' : 'off'}` }">
+              <i class="fa-solid fa-circle-nodes"></i> <span data-bind="text: kccpUpstreamLabel()"></span>
+            </span>
+            <!-- /ko -->
+            <!-- ko ifnot: config.proxy.kccp.enable() -->
+            <span data-bind="attr: { class: `hop ${config.proxy.enable() ? 'on' : 'off'}` }">
+              <i class="fa-solid fa-circle-nodes"></i> <span data-bind="text: proxyLabel()"></span>
+            </span>
+            <!-- /ko -->
+            <span class="hop-arrow"></span>
+            <span class="hop end"><i class="fa-solid fa-server"></i> kancolle-server.com</span>
           </div>
         </div>
       </div>
-      <h5>Proxy Server</h5>
+
+      <h5>Proxy server</h5>
       <div class="settings-group">
-        <div class="form-row">
-          <label for="proxyclienthost" class="col-sm-3">Host</label>
-          <input id="proxyclienthost" type="text" class="col form-control" data-bind="value: config.proxy.client.host" placeholder="Enter IP/host (e.g. 127.0.0.1)">
-        </div>
-        <div class="form-row">
-          <label for="proxyclientport" class="col-sm-3">Port</label>
-          <input id="proxyclientport" type="number" class="col form-control" data-bind="value: config.proxy.client.port" placeholder="Enter port (e.g. 8081)">
-        </div>
-        <div class="form-row mt-2">
-          <div class="col text-right">
-            <span class="text-success mr-2" data-bind="visible: proxySaved">Saved and applied</span>
+        <label class="dm-switch">
+          <input type="checkbox" data-bind="checked: config.proxy.enable">
+          <span class="slider"></span>
+          <span>Use a proxy</span>
+        </label>
+        <p class="small text-muted">For networks that need a proxy to reach anything. KC3 updates, the web store and the built-in KCCP use it too.</p>
+        <div data-bind="css: { 'dm-disabled': !config.proxy.enable() }">
+          <div class="btn-group btn-group-sm mb-3" role="group">
+            <button type="button" data-bind="attr: { class: `btn ${config.proxy.mode() === 'http-proxy' ? 'btn-primary' : 'btn-outline-primary'}` }, click: () => config.proxy.mode('http-proxy')">HTTP</button>
+            <button type="button" data-bind="attr: { class: `btn ${config.proxy.mode() === 'socks5-proxy' ? 'btn-primary' : 'btn-outline-primary'}` }, click: () => config.proxy.mode('socks5-proxy')">SOCKS5</button>
+          </div>
+          <div class="dm-address">
+            <input type="text" class="form-control" aria-label="Proxy host" data-bind="value: config.proxy.client.host" placeholder="127.0.0.1">
+            <span>:</span>
+            <input type="number" class="form-control port" aria-label="Proxy port" data-bind="value: config.proxy.client.port" placeholder="7890">
             <button type="button" class="btn btn-primary" data-bind="click: saveProxyConfig">Save</button>
           </div>
+          <div class="text-success small mt-1" data-bind="visible: proxySaved">Saved and applied</div>
         </div>
+      </div>
+
+      <h5>KCCacheProxy</h5>
+      <div class="settings-group">
+        <label class="dm-switch">
+          <input type="checkbox" data-bind="checked: config.proxy.kccp.enable">
+          <span class="slider"></span>
+          <span>Send game servers through KCCP</span>
+        </label>
+        <p class="small text-muted">
+          KCCP caches game assets (ship art, voices, maps...) on disk and can apply asset mods.
+          Only <code>*.kancolle-server.com</code> goes through it.
+        </p>
+        <button type="button" class="btn btn-secondary btn-sm" data-bind="click: () => selectedConfigPage(4)">KCCP settings <i class="fa-solid fa-arrow-right"></i></button>
       </div>
     </script>
 
     <script type="text/html" id="settings-content-4">
       <h3>KCCacheProxy</h3>
+      <p class="text-muted">Keeps game assets on disk so they load instantly, and applies asset mods.</p>
+
+      <!-- ko ifnot: config.proxy.kccp.enable() -->
+      <div class="settings-group dm-notice">
+        <i class="fa-solid fa-circle-pause"></i>
+        <span>KCCP is off. Game servers go straight through the proxy.</span>
+        <button type="button" class="btn btn-primary btn-sm" data-bind="click: () => config.proxy.kccp.enable(true)">Turn on</button>
+      </div>
+      <!-- /ko -->
+
+      <h5>Connection</h5>
       <div class="settings-group">
-        <div class="form-check form-row row">
-          <div class="form-check col-sm-6">
-            <input class="form-check-input" id="kccpenable" type="checkbox" data-bind="checked: config.proxy.kccp.enable">
-            <label class="form-check-label" for="kccpenable">Send game server traffic through KCCP</label>
-          </div>
-          <div class="form-check col">
-            <label for="kccpmode" class="form-check-label">Mode</label>
-            <select id="kccpmode" class="col form-control" data-bind="options: configSchema.proxy.kccp.mode.options, value: config.proxy.kccp.mode"></select>
-          </div>
+        <div class="btn-group btn-group-sm mb-2" role="group">
+          <button type="button" data-bind="attr: { class: `btn ${config.proxy.kccp.mode() === 'internal' ? 'btn-primary' : 'btn-outline-primary'}` }, click: () => config.proxy.kccp.mode('internal')">Built-in</button>
+          <button type="button" data-bind="attr: { class: `btn ${config.proxy.kccp.mode() === 'external' ? 'btn-primary' : 'btn-outline-primary'}` }, click: () => config.proxy.kccp.mode('external')">External</button>
         </div>
-        <div class="form-row">
-          <label for="kccphost" class="col-sm-3">Host</label>
-          <input id="kccphost" type="text" class="col form-control" data-bind="value: config.proxy.kccp.host" placeholder="Enter IP/host (e.g. 127.0.0.1)">
-        </div>
-        <div class="form-row">
-          <label for="kccpport" class="col-sm-3">HTTPS port</label>
-          <input id="kccpport" type="number" class="col form-control" data-bind="value: config.proxy.kccp.port" placeholder="Enter KCCP HTTPS (MITM) port (e.g. 8082)">
-        </div>
-        <div class="form-row mt-2">
-          <div class="col text-right">
-            <span class="text-success mr-2" data-bind="visible: proxySaved">Saved and applied</span>
-            <button type="button" class="btn btn-primary" data-bind="click: saveProxyConfig">Save</button>
-          </div>
-        </div>
-        <p class="small text-muted mt-2">
-          Only game servers (*.kancolle-server.com) go to KCCP, and its certificate is accepted for those hosts only.
-          Everything else still uses the proxy on the Proxy page.
-        </p>
         <p class="small text-muted" data-bind="visible: config.proxy.kccp.mode() === 'internal'">
-          internal: Damecon runs KCCP itself and listens on the host and port above. Its connections to the game
-          servers also use the proxy on the Proxy page. Cache and KCCP's own config.json are in <code>userdata/kccp</code>.
+          Damecon runs KCCP itself. Its downloads from the game servers go through the proxy on the Proxy page, and no
+          certificate needs to be trusted. Cache, mods and KCCP's config.json live in <code>userdata/kccp</code>.
         </p>
         <p class="small text-muted" data-bind="visible: config.proxy.kccp.mode() === 'external'">
-          external: enter the address of a KCCP you run yourself. It connects to the game servers on its own and does
-          not use Damecon's proxy. To send them through an HTTP proxy, run KCCP on a recent Node.js (e.g. the Docker
-          image) with <code>NODE_USE_ENV_PROXY=1</code> and <code>HTTPS_PROXY=http://host:port</code>, or use a
-          system-wide/TUN proxy.
+          Use a KCCP you run yourself and enter its HTTPS (MITM) port. It downloads from the game servers on its own
+          network, not through Damecon's proxy. To proxy it, run it on a recent Node.js (e.g. the Docker image) with
+          <code>NODE_USE_ENV_PROXY=1</code> and <code>HTTPS_PROXY=http://host:port</code>, or use a system-wide/TUN proxy.
         </p>
+        <label class="small text-muted mb-1" data-bind="text: config.proxy.kccp.mode() === 'internal' ? 'Listen on' : 'KCCP address'"></label>
+        <div class="dm-address">
+          <input type="text" class="form-control" aria-label="KCCP host" data-bind="value: config.proxy.kccp.host" placeholder="127.0.0.1">
+          <span>:</span>
+          <input type="number" class="form-control port" aria-label="KCCP HTTPS port" data-bind="value: config.proxy.kccp.port" placeholder="8082">
+          <button type="button" class="btn btn-primary" data-bind="click: saveProxyConfig">Save</button>
+        </div>
+        <div class="text-success small mt-1" data-bind="visible: proxySaved">Saved and applied</div>
       </div>
 
+      <!-- ko if: config.proxy.kccp.enable() && config.proxy.kccp.mode() === 'external' -->
+      <div class="settings-group dm-notice">
+        <i class="fa-solid fa-circle-info"></i>
+        <span>Stats, cache tools and mods are for the built-in KCCP. Manage an external KCCP in its own app.</span>
+      </div>
+      <!-- /ko -->
+
       <!-- ko if: isBuiltinKccp() && kccp() && kccp().loaded -->
-      <ul class="nav nav-tabs">
-        <li class="nav-item">
-          <a href="#" data-bind="attr: { class: `nav-link${kccpTab() == kccpTabs.status ? ' active' : ''}` }, click: () => kccpTab(kccpTabs.status)">Status &amp; cache</a>
-        </li>
-        <li class="nav-item">
-          <a href="#" data-bind="attr: { class: `nav-link${kccpTab() == kccpTabs.mods ? ' active' : ''}` }, click: () => kccpTab(kccpTabs.mods)">Mods</a>
-        </li>
-        <li class="nav-item">
-          <a href="#" data-bind="attr: { class: `nav-link${kccpTab() == kccpTabs.log ? ' active' : ''}` }, click: () => kccpTab(kccpTabs.log)">Log</a>
-        </li>
-      </ul>
-      <div class="form-group"></div>
-      <div class="text-danger small mb-2" data-bind="visible: kccpError, text: kccpError"></div>
-      <div class="text-info small mb-2" data-bind="visible: kccp().busy, text: `${kccp().busy}... (see Log)`"></div>
+      <div class="settings-group dm-status">
+        <div class="dm-status-line">
+          <span data-bind="attr: { class: `dm-dot ${kccp().running ? 'on' : 'off'}` }"></span>
+          <strong data-bind="text: kccp().running ? 'Running' : 'Not running'"></strong>
+          <span class="text-muted" data-bind="text: kccp().running ? `${config.proxy.kccp.host()}:${config.proxy.kccp.port()}` : kccp().error"></span>
+          <!-- ko if: kccp().busy -->
+          <span class="dm-busy"><i class="fa-solid fa-spinner fa-spin"></i> <span data-bind="text: kccp().busy"></span>...</span>
+          <!-- /ko -->
+        </div>
+        <div class="dm-stats">
+          <div class="dm-stat"><span class="value" data-bind="text: kccp().cachedFiles"></span><span class="label">files cached</span></div>
+          <div class="dm-stat"><span class="value" data-bind="text: kccp().stats.totalHandled || 0"></span><span class="label">requests</span></div>
+          <div class="dm-stat"><span class="value" data-bind="text: kccp().stats.inCache || 0"></span><span class="label">from cache</span></div>
+          <div class="dm-stat"><span class="value" data-bind="text: kccp().stats.fetched || 0"></span><span class="label">downloaded</span></div>
+          <div class="dm-stat"><span class="value" data-bind="text: kccp().stats.failed || 0"></span><span class="label">failed</span></div>
+          <div class="dm-stat"><span class="value" data-bind="text: `${((kccp().stats.bandwidthSaved || 0) / 1048576).toFixed(1)} MB`"></span><span class="label">saved</span></div>
+        </div>
+        <div class="dm-error" data-bind="visible: kccpError">
+          <i class="fa-solid fa-triangle-exclamation"></i> <span data-bind="text: kccpError"></span>
+        </div>
+      </div>
+
+      <div class="btn-group btn-group-sm mb-2" role="group">
+        <button type="button" data-bind="attr: { class: `btn ${kccpTab() == kccpTabs.status ? 'btn-primary' : 'btn-outline-primary'}` }, click: () => kccpTab(kccpTabs.status)"><i class="fa-solid fa-box-archive"></i> Cache</button>
+        <button type="button" data-bind="attr: { class: `btn ${kccpTab() == kccpTabs.mods ? 'btn-primary' : 'btn-outline-primary'}` }, click: () => kccpTab(kccpTabs.mods)"><i class="fa-solid fa-palette"></i> Mods <span data-bind="visible: kccp().mods.length, text: `(${kccp().mods.length})`"></span></button>
+        <button type="button" data-bind="attr: { class: `btn ${kccpTab() == kccpTabs.log ? 'btn-primary' : 'btn-outline-primary'}` }, click: () => kccpTab(kccpTabs.log)"><i class="fa-solid fa-terminal"></i> Log</button>
+      </div>
 
       <!-- ko if: kccpTab() == kccpTabs.status -->
       <div class="settings-group">
-        <p>
-          <!-- ko if: kccp().running -->
-          <span class="badge badge-success">Running</span>
-          <span data-bind="text: `${config.proxy.kccp.host()}:${config.proxy.kccp.port()}`"></span>
-          <!-- /ko -->
-          <!-- ko if: !kccp().running -->
-          <span class="badge badge-danger">Not running</span>
-          <span data-bind="text: kccp().error"></span>
-          <!-- /ko -->
+        <label class="dm-switch">
+          <input type="checkbox" data-bind="checked: kccp().options.disableBrowserCache, event: { change: (d, e) => kccpSetOption('disableBrowserCache', e) }">
+          <span class="slider"></span>
+          <span>Always ask KCCP for game assets</span>
+        </label>
+        <p class="small text-muted">Turns off the browser's own cache for game assets so every load is served (and counted) by KCCP.</p>
+        <label class="dm-switch">
+          <input type="checkbox" data-bind="checked: kccp().options.bypassGadgetUpdateCheck, event: { change: (d, e) => kccpSetOption('bypassGadgetUpdateCheck', e) }">
+          <span class="slider"></span>
+          <span>Bypass gadget update check</span>
+        </label>
+        <p class="small text-muted">Serves cached gadget files without asking the server whether they changed.</p>
+      </div>
+      <h5>Fill the cache</h5>
+      <div class="settings-group">
+        <div class="dm-tools">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="enable: !kccp().busy, click: () => kccpCall('preload')" title="download the assets KCCP recommends ahead of time"><i class="fa-solid fa-cloud-arrow-down"></i> Preload assets</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="enable: !kccp().busy, click: () => kccpCall('import-cache')"><i class="fa-solid fa-file-zipper"></i> Import cache dump</button>
+        </div>
+        <p class="small text-muted mb-0">
+          KCCP only caches what you load. Preload fetches the common assets now; a
+          <a href="https://github.com/Tibowl/KCCacheProxy/wiki/Installation-and-setup#using-cache-dumps" target="_blank">cache dump</a>
+          adds everything at once.
         </p>
-        <p class="small">
-          <span data-bind="text: `${kccp().cachedFiles} files cached`"></span>
-          <!-- ko if: kccp().stats.totalHandled -->
-          <span data-bind="text: ` · ${kccp().stats.totalHandled} requests handled, ${kccp().stats.inCache || 0} from cache, ${kccp().stats.fetched || 0} fetched, ${kccp().stats.failed || 0} failed, ${((kccp().stats.bandwidthSaved || 0) / 1048576).toFixed(1)} MB saved`"></span>
-          <!-- /ko -->
-        </p>
-        <div class="form-check">
-          <input class="form-check-input" id="kccpgadget" type="checkbox" data-bind="checked: kccp().options.bypassGadgetUpdateCheck, event: { change: (d, e) => kccpSetOption('bypassGadgetUpdateCheck', e) }">
-          <label class="form-check-label" for="kccpgadget">Bypass gadget update check</label>
+      </div>
+      <h5>Maintenance</h5>
+      <div class="settings-group">
+        <div class="dm-tools">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: () => kccpCall('open-cache-folder')"><i class="fa-regular fa-folder-open"></i> Cache folder</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: () => kccpCall('open-data-folder')"><i class="fa-regular fa-folder"></i> Data folder</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: () => kccpCall('reload-cache')"><i class="fa-solid fa-rotate"></i> Reload cache</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="enable: !kccp().busy, click: () => kccpCall('verify-cache', { deleteInvalid: true })" title="compare cached files with the game server and delete outdated ones"><i class="fa-solid fa-list-check"></i> Verify cache</button>
         </div>
-        <div class="form-check">
-          <input class="form-check-input" id="kccpnobrowsercache" type="checkbox" data-bind="checked: kccp().options.disableBrowserCache, event: { change: (d, e) => kccpSetOption('disableBrowserCache', e) }">
-          <label class="form-check-label" for="kccpnobrowsercache">Disable the browser cache for game assets (always ask KCCP)</label>
-        </div>
-        <div class="form-group mt-3">
-          <button type="button" class="btn btn-secondary" data-bind="click: () => kccpCall('open-cache-folder')">Open cache folder</button>
-          <button type="button" class="btn btn-secondary" data-bind="click: () => kccpCall('open-data-folder')">Open KCCP data folder</button>
-          <button type="button" class="btn btn-secondary" data-bind="click: () => kccpCall('reload-cache')">Reload cache</button>
-        </div>
-        <div class="form-group">
-          <button type="button" class="btn btn-secondary" data-bind="enable: !kccp().busy, click: () => kccpCall('preload')" title="download the assets KCCP recommends ahead of time">Preload assets</button>
-          <button type="button" class="btn btn-secondary" data-bind="enable: !kccp().busy, click: () => kccpCall('import-cache')">Import cache dump (.zip)</button>
-          <button type="button" class="btn btn-secondary" data-bind="enable: !kccp().busy, click: () => kccpCall('verify-cache', { deleteInvalid: true })" title="compare cached files with the game server and delete outdated ones">Verify cache</button>
-        </div>
-        <p class="small text-muted">
-          <a href="https://github.com/Tibowl/KCCacheProxy/wiki/Installation-and-setup#using-cache-dumps" target="_blank">Where to get cache dumps</a>
-        </p>
       </div>
       <!-- /ko -->
 
       <!-- ko if: kccpTab() == kccpTabs.mods -->
       <div class="settings-group">
-        <div class="form-check">
-          <input class="form-check-input" id="kccpmodder" type="checkbox" data-bind="checked: kccp().options.enableModder, event: { change: (d, e) => kccpSetOption('enableModder', e) }">
-          <label class="form-check-label" for="kccpmodder">Enable asset mods</label>
-        </div>
-        <div class="form-check">
-          <input class="form-check-input" id="kccpgitupdate" type="checkbox" data-bind="checked: kccp().options.autoUpdateGitMods, event: { change: (d, e) => kccpSetOption('autoUpdateGitMods', e) }">
-          <label class="form-check-label" for="kccpgitupdate">Update git mods when KCCP starts</label>
-        </div>
+        <label class="dm-switch">
+          <input type="checkbox" data-bind="checked: kccp().options.enableModder, event: { change: (d, e) => kccpSetOption('enableModder', e) }">
+          <span class="slider"></span>
+          <span>Enable asset mods</span>
+        </label>
+        <p class="small text-muted">Mods replace game images and sounds as they pass through KCCP.</p>
+        <label class="dm-switch">
+          <input type="checkbox" data-bind="checked: kccp().options.autoUpdateGitMods, event: { change: (d, e) => kccpSetOption('autoUpdateGitMods', e) }">
+          <span class="slider"></span>
+          <span>Update git mods when KCCP starts</span>
+        </label>
       </div>
-      <h6>Installed mods <small class="text-muted">(later mods override earlier ones)</small></h6>
+      <h5>Installed <small class="text-muted">later mods override earlier ones</small></h5>
       <div class="settings-group">
-        <div class="form-items-scroller">
-          <!-- ko foreach: kccp().mods -->
-          <div class="kccp-mod">
-            <div class="kccp-mod-label">
-              <div>
-                <span data-bind="text: `${$index() + 1}.`"></span>
-                <span data-bind="text: info ? info.name : path"></span>
-                <!-- ko if: info && info.version -->
-                <span class="subtext" data-bind="text: `v${info.version}`"></span>
-                <!-- /ko -->
-                <!-- ko if: git -->
-                <span class="subtext badge badge-secondary">git</span>
-                <!-- /ko -->
-                <!-- ko if: !info -->
-                <span class="subtext badge badge-danger">missing</span>
-                <!-- /ko -->
-              </div>
-              <!-- ko if: info && info.authors -->
-              <span class="subtext" data-bind="text: info.authors.join(', ')"></span>
+        <!-- ko foreach: kccp().mods -->
+        <div class="kccp-mod">
+          <div class="kccp-mod-label">
+            <div>
+              <span data-bind="text: `${$index() + 1}.`"></span>
+              <strong data-bind="text: info ? info.name : path"></strong>
+              <!-- ko if: info && info.version -->
+              <span class="subtext" data-bind="text: `v${info.version}`"></span>
+              <!-- /ko -->
+              <!-- ko if: git -->
+              <span class="subtext badge badge-secondary">git</span>
+              <!-- /ko -->
+              <!-- ko if: !info -->
+              <span class="subtext badge badge-danger">missing</span>
               <!-- /ko -->
             </div>
-            <div class="controls">
-              <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="visible: $index() > 0, click: () => $root.kccpCall('move-mod', { index, offset: -1 })" title="move up"><i class="fa-solid fa-arrow-up"></i></button>
-              <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="visible: $index() < $root.kccp().mods.length - 1, click: () => $root.kccpCall('move-mod', { index, offset: 1 })" title="move down"><i class="fa-solid fa-arrow-down"></i></button>
-              <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="visible: git, click: () => $root.kccpCall('update-git-mod', { index })" title="update from git"><i class="fa-solid fa-rotate"></i></button>
-              <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: () => $root.kccpCall('open-mod-folder', { index })" title="open folder"><i class="fa-regular fa-folder-open"></i></button>
-              <button type="button" class="btn btn-outline-danger btn-sm" data-bind="click: () => $root.kccpCall('remove-mod', { index })" title="remove from list (files are kept)"><i class="fa-regular fa-trash-can"></i></button>
-            </div>
+            <!-- ko if: info && info.authors -->
+            <span class="subtext" data-bind="text: info.authors.join(', ')"></span>
+            <!-- /ko -->
           </div>
-          <!-- /ko -->
-          <!-- ko if: kccp().mods.length === 0 -->
-          <p class="small text-muted">No mods added.</p>
-          <!-- /ko -->
-        </div>
-        <div class="form-group mt-3 input-group">
-          <input type="text" class="form-control" data-bind="textInput: kccpGitUrl" placeholder="https://github.com/user/some-kccp-mod">
-          <div class="input-group-append">
-            <button type="button" class="btn btn-primary" data-bind="enable: !kccp().busy && kccpGitUrl(), click: () => kccpAddGitMod()">Add from git</button>
+          <div class="controls">
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="visible: $index() > 0, click: () => $root.kccpCall('move-mod', { index, offset: -1 })" title="move up"><i class="fa-solid fa-arrow-up"></i></button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="visible: $index() < $root.kccp().mods.length - 1, click: () => $root.kccpCall('move-mod', { index, offset: 1 })" title="move down"><i class="fa-solid fa-arrow-down"></i></button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="visible: git, click: () => $root.kccpCall('update-git-mod', { index })" title="update from git"><i class="fa-solid fa-rotate"></i></button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: () => $root.kccpCall('open-mod-folder', { index })" title="open folder"><i class="fa-regular fa-folder-open"></i></button>
+            <button type="button" class="btn btn-outline-danger btn-sm" data-bind="click: () => $root.kccpCall('remove-mod', { index })" title="remove from list (files are kept)"><i class="fa-regular fa-trash-can"></i></button>
           </div>
         </div>
-        <div class="form-group">
-          <button type="button" class="btn btn-secondary" data-bind="enable: !kccp().busy, click: () => kccpCall('add-mod')">Add from disk (.mod.json)</button>
-          <button type="button" class="btn btn-secondary" data-bind="enable: !kccp().busy, click: () => kccpCall('convert-poi')" title="convert a poi mod folder into a KCCP mod">Convert poi mod</button>
-          <button type="button" class="btn btn-secondary" data-bind="enable: !kccp().busy, click: () => kccpCall('update-git-mods')">Update git mods</button>
-          <button type="button" class="btn btn-secondary" data-bind="enable: !kccp().busy, click: () => kccpCall('reload-mods')">Reload mods</button>
-          <button type="button" class="btn btn-secondary" data-bind="enable: !kccp().busy, click: () => kccpCall('prepatch')" title="apply mods to every cached image now instead of on first load">Pre-patch cached assets</button>
+        <!-- /ko -->
+        <!-- ko if: kccp().mods.length === 0 -->
+        <p class="small text-muted">No mods yet. Install one below or add it from git.</p>
+        <!-- /ko -->
+        <div class="dm-address mt-3">
+          <input type="text" class="form-control" aria-label="Git mod URL" data-bind="textInput: kccpGitUrl" placeholder="https://github.com/user/some-kccp-mod">
+          <button type="button" class="btn btn-primary" data-bind="enable: !kccp().busy && kccpGitUrl(), click: () => kccpAddGitMod()">Add from git</button>
         </div>
-        <p class="small text-muted">Mods only change assets that go through KCCP, and need "Enable asset mods". Convert poi mod needs the original files in the cache first.</p>
+        <div class="dm-tools mt-2">
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="enable: !kccp().busy, click: () => kccpCall('add-mod')"><i class="fa-regular fa-file"></i> Add .mod.json</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="enable: !kccp().busy, click: () => kccpCall('convert-poi')" title="convert a poi mod folder; the original files must be in the cache"><i class="fa-solid fa-right-left"></i> Convert poi mod</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="enable: !kccp().busy, click: () => kccpCall('update-git-mods')"><i class="fa-solid fa-code-pull-request"></i> Update git mods</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="enable: !kccp().busy, click: () => kccpCall('reload-mods')"><i class="fa-solid fa-rotate"></i> Reload</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="enable: !kccp().busy, click: () => kccpCall('prepatch')" title="apply mods to every cached image now instead of on first load"><i class="fa-solid fa-wand-magic-sparkles"></i> Pre-patch cache</button>
+        </div>
       </div>
-      <h6>Get mods</h6>
+      <h5>Get mods</h5>
       <div class="settings-group">
-        <ul>
-          <!-- ko foreach: kccpRecommendedMods -->
-          <li class="mb-2">
-            <a data-bind="attr: { href: url }, text: name" target="_blank"></a> by <span data-bind="text: authors.join(', ')"></span>
-            <button type="button" class="btn btn-secondary btn-sm ml-2" data-bind="enable: !$root.kccp().busy, click: () => $root.kccpAddGitMod(url)">Install</button>
-          </li>
-          <!-- /ko -->
-        </ul>
+        <!-- ko foreach: kccpRecommendedMods -->
+        <div class="dm-row">
+          <div>
+            <a data-bind="attr: { href: url }, text: name" target="_blank"></a>
+            <span class="subtext" data-bind="text: `by ${authors.join(', ')}`"></span>
+          </div>
+          <button type="button" class="btn btn-outline-primary btn-sm" data-bind="enable: !$root.kccp().busy, click: () => $root.kccpAddGitMod(url)"><i class="fa-solid fa-plus"></i> Install</button>
+        </div>
+        <!-- /ko -->
       </div>
       <!-- /ko -->
 
       <!-- ko if: kccpTab() == kccpTabs.log -->
-      <div class="settings-group">
-        <div id="kccp-log-scroller" class="log-scroller">
-          <ul class="list-unstyled">
-            <!-- ko foreach: kccpLog -->
-            <li>
-              <small>
-                <span class="text-muted" data-bind="text: $data[0]"></span>
-                <span data-bind="text: $data[2], attr: { class: `badge badge-${$root.kccpLogBadges[$data[2]] || 'secondary'}` }"></span>
-                <span data-bind="text: $data[3]"></span>
-              </small>
-            </li>
-            <!-- /ko -->
-          </ul>
+      <div id="kccp-log-scroller" class="dm-log">
+        <!-- ko foreach: kccpLog -->
+        <div data-bind="attr: { class: `dm-log-line ${$data[2]}` }">
+          <span class="time" data-bind="text: $data[0]"></span><span class="msg" data-bind="text: $data[3]"></span>
         </div>
+        <!-- /ko -->
+        <!-- ko if: kccpLog().length === 0 -->
+        <div class="dm-log-line"><span class="time">--</span> Nothing logged yet.</div>
+        <!-- /ko -->
       </div>
       <!-- /ko -->
       <!-- /ko -->

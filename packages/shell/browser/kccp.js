@@ -75,6 +75,7 @@ export function init(pushToWindows) {
 
 export async function start({ host, port, dataDir }) {
   load(dataDir)
+  stop()
   await saveConfig({
     ...config(),
     hostname: host,
