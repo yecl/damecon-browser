@@ -1,6 +1,6 @@
 # ![Damecon icon](./packages/shell/browser/ui/assets/icons/damecon_icon_48.png) damecon-browser
 
-A minimal, tabbed web browser for playing Kantai Collection, with integrated KC3Kai and HTTP/SOCKS5 proxy support.
+A minimal, tabbed web browser for playing Kantai Collection, with integrated KC3Kai, a built-in KCCacheProxy and HTTP/SOCKS5 proxy support.
 
 Built on [electron-browser-shell](https://github.com/samuelmaddock/electron-browser-shell).
 
@@ -23,7 +23,8 @@ Seriously, I've literally never worked with Electron before. There's some real s
 This is a fork of [planetarian/damecon-browser](https://github.com/planetarian/damecon-browser), **focused on macOS** (Apple Silicon first).
 
 - **macOS is the maintained platform.** Releases ship a macOS arm64 build. Windows and Linux builds are still produced by CI, but they are untested and not a priority.
-- **KCCacheProxy (KCCP) has been removed**, together with its submodule, mod updater, PAC/redirect/MITM options and the Application Log tab. Only plain HTTP and SOCKS5 proxies remain. Old KCCP proxy settings are migrated to an (initially disabled) HTTP proxy.
+- **Proxy and KCCacheProxy (KCCP) can be chained.** An HTTP/SOCKS5 proxy handles everything, and KCCP can sit in front of it for game servers only, so it works on networks where every connection needs a proxy. KCCP runs built in (its own downloads also use the proxy) or as an external instance. KCCP was rebuilt for this fork: upstream's KCCP modes and settings are not carried over.
+- **Asset mods**: KCCP mods, classic `.hack` files and ship `config.ini` files (岛风GO format).
 - **Upgraded to Electron 44** (upstream stays on Electron 25).
 - The app auto-updater is removed, because it pointed at upstream's update server. Update by downloading a new release. KC3Kai still updates itself.
 
@@ -85,11 +86,33 @@ You can select from three different update channels: `release`, `master`, and `d
   - Switching channels will automatically unload the old channel's extension and load the new one in.
   - To remove the files for a channel, simply delete the associated `kc3kai-*` folder within `./extensions`.
 
-### Proxy Configuration
+### Proxy
 
-Damecon can route all browser traffic (including KC3 updates and web store extension downloads) through an HTTP or SOCKS5 proxy. KCCacheProxy is no longer supported.
+The `Proxy` page shows the route traffic takes and lets you set it up:
 
-Choose the mode and set the host/port in the `Proxy` section of the settings page, then press `Save`. The `Enabled` checkbox turns the proxy on or off.
+- **Proxy server**: turn on `Use a proxy`, pick HTTP or SOCKS5, enter host and port, then `Save`. Everything goes through it: websites, logins, KC3 updates, web store downloads and the built-in KCCP.
+- **KCCacheProxy**: `Send game servers through KCCP` routes only `*.kancolle-server.com` to KCCP. Everything else keeps using the proxy directly.
+
+`chrome.proxy` extensions such as ZeroOmega are not supported; use these settings instead.
+
+### KCCacheProxy
+
+[KCCacheProxy](https://github.com/Tibowl/KCCacheProxy) keeps game assets (ship art, voices, maps...) on disk and can apply asset mods. Set it up on the `KCCP` page. Damecon accepts KCCP's certificate for the game servers only, so nothing needs to be trusted in the system keychain.
+
+- **Built-in** (default): Damecon runs KCCP itself on the address you choose. Its downloads from the game servers go through the proxy above. Its cache, mods and config live in `userdata/kccp`.
+- **External**: use a KCCP you run yourself (enter its HTTPS/MITM port). It connects to the game servers on its own network. To proxy it, run it on a recent Node.js (e.g. its Docker image) with `NODE_USE_ENV_PROXY=1` and `HTTPS_PROXY=http://host:port`, or use a system-wide/TUN proxy.
+
+For the built-in KCCP, the page also shows its status and request/cache stats, a live log, and cache tools: preload the common assets, import a cache dump, verify, open the cache folder. KCCP only caches what goes through it, so assets already in the browser's cache don't show up until `Always ask KCCP for game assets` is on or the browser cache is cleared.
+
+#### Asset mods
+
+All three kinds need the built-in KCCP and are managed on the `KCCP` page's `Mods` tab.
+
+- **KCCP mods**: install from git (a few are listed on the page), add a `.mod.json` from disk, or convert a poi mod. KCCP replaces only the parts of an image that match the mod's original, so they survive game updates that repack sprite sheets.
+- **`.hack` files**: turn on `Use .hack files` and put `<name>.hack.<ext>` under the game path in the hack folder, e.g. `kcs2/resources/ship/full/0467_6223_qgrxbhuvtrbf.hack.png`. They replace the whole file and take priority over the cache and KCCP mods.
+- **Ship `config.ini`**: `kcs/resources/swf/ships/<ship file name>.config.ini` in the hack folder, in the 岛风GO format (`[graph]` positions such as `boko_n_left`, `[info] ship_name`). Values replace the server's; empty keys keep them. They apply when the game starts. KC3 also sees a changed ship name.
+
+Press `Reload` after adding or removing `.hack` or `config.ini` files.
 
 ## Features
 
@@ -115,7 +138,9 @@ New Tab launch page:
 - [x] Support both release and in-development versions of KC3
 - [x] Configurable KC3 update schedule (daily/weekly/always/never)
 - [x] Auto-open KC3 start page (with developer tools) and strategy room
-- [x] HTTP/SOCKS5 proxy support (KCCP has been removed)
+- [x] HTTP/SOCKS5 proxy support
+- [x] Built-in or external KCCacheProxy, chained in front of the proxy for game servers
+- [x] Asset mods: KCCP mods, `.hack` files and ship `config.ini`
 - [x] Color and light/dark theme support
 - [x] Manifest V3 extensions support
 - [x] Chrome Webstore extensions support
@@ -130,6 +155,7 @@ New Tab launch page:
 - [x] Common mouse gestures (Tab middle-click, draggable tabs, Ctrl+scroll, etc)
 - [ ] Link hover URL tooltips
 - [x] Find in page (Ctrl+F)
+- [x] Mute tabs (tab context menu or the tab's speaker icon)
 
 ### 🤞 Eventually
 
