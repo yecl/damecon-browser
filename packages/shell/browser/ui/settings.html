@@ -364,6 +364,34 @@
           </div>
         </div>
       </div>
+      <h5>External KCCacheProxy</h5>
+      <div class="settings-group">
+        <div class="form-check">
+          <input class="form-check-input" id="kccpenable" type="checkbox" data-bind="checked: config.proxy.kccp.enable">
+          <label class="form-check-label" for="kccpenable">Send game server traffic through KCCP</label>
+        </div>
+        <div class="form-row">
+          <label for="kccphost" class="col-sm-3">Host</label>
+          <input id="kccphost" type="text" class="col form-control" data-bind="value: config.proxy.kccp.host" placeholder="Enter IP/host (e.g. 127.0.0.1)">
+        </div>
+        <div class="form-row">
+          <label for="kccpport" class="col-sm-3">HTTPS port</label>
+          <input id="kccpport" type="number" class="col form-control" data-bind="value: config.proxy.kccp.port" placeholder="Enter KCCP HTTPS (MITM) port (e.g. 8082)">
+        </div>
+        <div class="form-row mt-2">
+          <div class="col text-right">
+            <span class="text-success mr-2" data-bind="visible: proxySaved">Saved and applied</span>
+            <button type="button" class="btn btn-primary" data-bind="click: saveProxyConfig">Save</button>
+          </div>
+        </div>
+        <p class="small text-muted mt-2">
+          Only game servers (*.kancolle-server.com) go to KCCP, and its certificate is accepted for those hosts only.
+          Everything else still uses the proxy above. KCCP makes its own connections to the game servers and
+          does not use Damecon's proxy. To send them through an HTTP proxy, run KCCP on a recent Node.js
+          (e.g. the Docker image) with <code>NODE_USE_ENV_PROXY=1</code> and <code>HTTPS_PROXY=http://host:port</code>,
+          or use a system-wide/TUN proxy.
+        </p>
+      </div>
     </script>
 
     <script type="text/html" id="settings-content-3">

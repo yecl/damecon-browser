@@ -200,6 +200,8 @@ class Settings {
   async saveProxyConfig() {
     await configStore.set('proxy.client.host', this.config.proxy.client.host())
     await configStore.set('proxy.client.port', this.config.proxy.client.port())
+    await configStore.set('proxy.kccp.host', this.config.proxy.kccp.host())
+    await configStore.set('proxy.kccp.port', this.config.proxy.kccp.port())
     this.proxySaved(true)
     clearTimeout(this.proxySavedTimer)
     this.proxySavedTimer = setTimeout(() => this.proxySaved(false), 3000)

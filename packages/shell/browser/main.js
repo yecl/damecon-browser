@@ -153,6 +153,8 @@ delete cfg.proxy.method
 delete cfg.proxy.client.httpsPort
 configStore.all = cfg // save with updated defaults
 
+const KC_GAME_HOST = /^w\d{2}[a-z]\.kancolle-server\.com$/
+
 if (!configStore.get('window.behavior.occlusion'))
   app.commandLine.appendSwitch('disable-renderer-backgrounding')
 
@@ -446,8 +448,27 @@ class Browser extends EventEmitter {
     const mode = proxyCfg.mode
 
     const simpleModes = ['http-proxy', 'socks5-proxy']
+    const kccp = proxyCfg.kccp
 
-    if (this.isProxyEnabled && simpleModes.includes(mode)) {
+    if (kccp.enable) {
+      // KCCP only takes game servers; everything else keeps using the outer proxy
+      const upstream = !this.isProxyEnabled
+        ? 'DIRECT'
+        : `${mode === 'socks5-proxy' ? 'SOCKS5' : 'PROXY'} ${proxyCfg.client.host}:${proxyCfg.client.port}`
+      const pac =
+        'function FindProxyForURL(url, host) {\n' +
+        `  if (${KC_GAME_HOST}.test(host)) return "PROXY ${kccp.host}:${kccp.port}";\n` +
+        `  return "${upstream}";\n` +
+        '}\n'
+      console.log(
+        `Routing game servers through KCCP ${kccp.host}:${kccp.port}, others: ${upstream}`,
+      )
+      await this.session.setProxy({
+        mode: 'pac_script',
+        pacScript:
+          'data:application/x-ns-proxy-autoconfig;base64,' + Buffer.from(pac).toString('base64'),
+      })
+    } else if (this.isProxyEnabled && simpleModes.includes(mode)) {
       const host = proxyCfg.client.host
       const port = proxyCfg.client.port
       // Chromium proxyRules format: socks5 needs scheme prefix, HTTP proxy uses host:port directly
@@ -493,6 +514,12 @@ class Browser extends EventEmitter {
   async init() {
     this.initSession()
     setupMenu(this)
+
+    // KCCP decrypts game traffic with its own CA; trust it for game servers only, never other hosts
+    this.session.setCertificateVerifyProc((request, callback) => {
+      const viaKccp = configStore.get('proxy.kccp.enable')
+      callback(viaKccp && KC_GAME_HOST.test(request.hostname) ? 0 : -3)
+    })
 
     this.session.registerPreloadScript({
       id: 'shell-preload',
