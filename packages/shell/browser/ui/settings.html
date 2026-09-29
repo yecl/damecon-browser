@@ -536,6 +536,26 @@
           <span>Update git mods when KCCP starts</span>
         </label>
       </div>
+      <h5>.hack files</h5>
+      <div class="settings-group">
+        <label class="dm-switch">
+          <input type="checkbox" data-bind="checked: kccp().options.enableHacks, event: { change: (d, e) => kccpSetOption('enableHacks', e) }">
+          <span class="slider"></span>
+          <span>Use .hack files</span>
+        </label>
+        <p class="small text-muted">
+          Classic whole-file replacement, as used by poi and other tools. Put <code>&lt;name&gt;.hack.&lt;ext&gt;</code> in the
+          hack folder under the game path, e.g. <code>kcs2/resources/ship/full/0467_6223_qgrxbhuvtrbf.hack.png</code>.
+          They take priority over the cache and the mods below.
+          Ship position and name tweaks go in <code>kcs/resources/swf/ships/&lt;ship file name&gt;.config.ini</code>
+          (岛风GO format); they apply when the game starts. Reload after adding or removing files.
+        </p>
+        <div class="dm-tools mb-0">
+          <span class="small align-self-center mr-2" data-bind="text: `${kccp().hackFiles} .hack files, ${kccp().shipInis} config.ini`"></span>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: () => kccpCall('open-hack-folder')"><i class="fa-regular fa-folder-open"></i> Hack folder</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: () => kccpCall('reload-hacks')" title="rescan the folder and clear the browser cache"><i class="fa-solid fa-rotate"></i> Reload</button>
+        </div>
+      </div>
       <h5>Installed <small class="text-muted">later mods override earlier ones</small></h5>
       <div class="settings-group">
         <!-- ko foreach: kccp().mods -->

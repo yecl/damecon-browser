@@ -1,7 +1,10 @@
 import path from 'path'
 import fs from 'fs'
 import { inspect } from 'util'
-import { dialog, shell } from 'electron'
+import zlib from 'zlib'
+import { Readable } from 'stream'
+import { dialog, session, shell } from 'electron'
+import { decodeIni, parseIni, applyShipInis } from './shipgraph-ini'
 
 // Built-in KCCacheProxy. KCCP keeps its config in module state loaded from DATA_DIR,
 // so it is required lazily, after DATA_DIR points into Damecon's userdata.
@@ -12,6 +15,7 @@ const OPTIONS = [
   'verifyCache',
   'bypassGadgetUpdateCheck',
   'disableBrowserCache',
+  'enableHacks',
 ]
 
 let k
@@ -62,12 +66,121 @@ function load(dataDir) {
       },
     },
   })
+  // .hack files replace whole assets before KCCP's cache and mods see the request
+  const proxyRequest = k.core.Proxy.prototype.proxyRequest
+  k.core.Proxy.prototype.proxyRequest = function (req, callback) {
+    if (config().enableHacks && shipInis.size && /\/kcsapi\/api_start2\//.test(req.url))
+      return proxyRequest.call(this, req, (res) => patchStart2(res).then(callback))
+    const file = config().enableHacks && req.method === 'GET' && hackFileFor(req.url)
+    if (!file) return proxyRequest.call(this, req, callback)
+    k.core.logger.log('kccp-hack', `Hack: ${file}`)
+    callback({
+      statusCode: 200,
+      headers: {
+        'Content-Type': MIME[path.extname(file).toLowerCase()] || 'application/octet-stream',
+        'Cache-Control': 'no-store',
+      },
+      data: fs.createReadStream(file),
+    })
+  }
   return k
 }
 
 const config = () => k.core.config.getConfig()
 const saveConfig = (cfg) => k.core.config.setConfig(cfg, true)
 const modsDir = () => path.join(process.env.DATA_DIR, 'mods')
+const hackDir = () => path.join(process.env.DATA_DIR, 'hack')
+
+const MIME = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.mp3': 'audio/mpeg',
+  '.ogg': 'audio/ogg',
+  '.json': 'application/json',
+  '.js': 'text/javascript',
+  '.css': 'text/css',
+  '.html': 'text/html',
+}
+
+// relative paths of `<name>.hack.<ext>` files under hackDir, '/'-separated;
+// only indexed files are ever served, so request paths can't reach outside the folder
+let hacks = new Set()
+// api_filename -> parsed kcs/resources/swf/ships/<api_filename>.config.ini
+let shipInis = new Map()
+
+function indexHacks() {
+  fs.mkdirSync(hackDir(), { recursive: true })
+  const files = fs
+    .readdirSync(hackDir(), { recursive: true })
+    .map((f) => f.split(path.sep).join('/'))
+  hacks = new Set(files.filter((f) => /\.hack\.[^./]+$/i.test(f)))
+  shipInis = new Map()
+  for (const f of files) {
+    const match = f.match(/^kcs\/resources\/swf\/ships\/([^/]+)\.config\.ini$/i)
+    if (!match) continue
+    try {
+      shipInis.set(match[1], parseIni(decodeIni(fs.readFileSync(path.join(hackDir(), f)))))
+    } catch (error) {
+      k.core.logger.error('kccp-hack', `Skipping ${f}:`, error)
+    }
+  }
+  k.core.logger.log(
+    'kccp-hack',
+    `${hacks.size} .hack files and ${shipInis.size} ship config.ini in ${hackDir()}`,
+  )
+}
+
+const DECOMPRESS = {
+  gzip: zlib.gunzipSync,
+  deflate: zlib.inflateSync,
+  br: zlib.brotliDecompressSync,
+}
+
+// Rewrites api_start2 with the ship config.ini files; any failure hands the game the original response
+async function patchStart2(res) {
+  if (res.statusCode !== 200) return res
+  const chunks = []
+  for await (const chunk of res.data) chunks.push(chunk)
+  const raw = Buffer.concat(chunks)
+  try {
+    const encoding = String(res.headers['content-encoding'] || '').toLowerCase()
+    const decompress = DECOMPRESS[encoding]
+    if (encoding && encoding !== 'identity' && !decompress)
+      throw new Error(`unsupported encoding ${encoding}`)
+    const patched = applyShipInis((decompress ? decompress(raw) : raw).toString('utf8'), shipInis)
+    if (patched) {
+      k.core.logger.log('kccp-hack', `config.ini applied to ${patched.count} ships in api_start2`)
+      const body = Buffer.from(patched.body, 'utf8')
+      const headers = { ...res.headers, 'content-length': String(body.length) }
+      delete headers['content-encoding']
+      delete headers['transfer-encoding']
+      return { ...res, headers, data: Readable.from([body]) }
+    }
+  } catch (error) {
+    k.core.logger.error('kccp-hack', 'config.ini not applied to api_start2:', error)
+  }
+  return { ...res, data: Readable.from([raw]) }
+}
+
+function hackFileFor(url) {
+  let pathname
+  try {
+    pathname = decodeURIComponent(new URL(url, 'https://w00g.kancolle-server.com').pathname)
+  } catch {
+    return null
+  }
+  const ext = path.posix.extname(pathname)
+  if (!ext) return null
+  const rel = `${pathname.slice(1, -ext.length)}.hack${ext}`
+  return hacks.has(rel) ? path.join(hackDir(), rel) : null
+}
+
+// the browser may still hold the original asset in its HTTP cache
+const refreshHacks = async () => {
+  indexHacks()
+  await session.defaultSession.clearCache()
+}
 
 export function init(pushToWindows) {
   push = pushToWindows
@@ -84,6 +197,7 @@ export async function start({ host, port, dataDir }) {
     socks5Enabled: false,
     checkForUpdates: false,
   })
+  indexHacks()
   proxy = new k.core.Proxy()
   await proxy.init()
   await proxy.start()
@@ -125,6 +239,8 @@ export function status() {
     stats,
     options: Object.fromEntries(OPTIONS.map((o) => [o, !!cfg[o]])),
     mods: readMods(),
+    hackFiles: hacks.size,
+    shipInis: shipInis.size,
   }
 }
 
@@ -190,6 +306,7 @@ export async function action(name, data = {}) {
       if (!OPTIONS.includes(data.key)) throw new Error(`Unknown option ${data.key}`)
       await saveConfig({ ...config(), [data.key]: !!data.value })
       if (data.key === 'enableModder' && data.value) await k.patcher.reloadModCache()
+      if (data.key === 'enableHacks') await refreshHacks()
       return status()
     }
 
@@ -198,6 +315,12 @@ export async function action(name, data = {}) {
       return shell.openPath(k.core.config.getCacheLocation())
     case 'open-data-folder':
       return shell.openPath(process.env.DATA_DIR)
+    case 'open-hack-folder':
+      fs.mkdirSync(hackDir(), { recursive: true })
+      return shell.openPath(hackDir())
+    case 'reload-hacks':
+      await refreshHacks()
+      return status()
     case 'reload-cache':
       return k.cacher.loadCached()
     case 'verify-cache':
