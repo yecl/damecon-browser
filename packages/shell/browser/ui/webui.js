@@ -552,7 +552,10 @@ class WebUI {
     chrome.tabs.goForward()
   }
   browserActionFitGame() {
-    this.sendToMain('fit-game-to-window')
+    this.sendToMain('fit-game-to-window', { mode: 'fit' })
+  }
+  browserActionPixelGame() {
+    this.sendToMain('fit-game-to-window', { mode: 'pixel' })
   }
   browserActionReload() {
     chrome.tabs.reload()

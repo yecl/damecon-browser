@@ -17,6 +17,7 @@ import https from 'https'
 import { HttpsProxyAgent } from 'https-proxy-agent'
 import { SocksProxyAgent } from 'socks-proxy-agent'
 import * as builtinKccp from './kccp'
+import { zoomGameTab } from './game-zoom'
 
 const defaultAgents = { http: http.globalAgent, https: https.globalAgent }
 
@@ -845,28 +846,12 @@ class Browser extends EventEmitter {
           initWin.resolveReady()
           break
         case 'fit-game-to-window': {
-          const fitWin = this.windows.find((w) => w.window.id === meta.windowId)
-          const fitTab = fitWin?.tabs.selected
-          if (fitTab) {
-            const viewBounds = fitTab.view.getBounds()
-            const viewW = viewBounds.width
-            const viewH = viewBounds.height
-            const scale = Math.min(viewW / 1200, viewH / 720)
-            // Only zoom when we're actually in the game view:
-            // kc3kai creates `.box-game .game-swf` iframe when the user
-            // starts the game. If that iframe doesn't exist, it's either
-            // a non-game page (settings/about/...) or the pre-play screen,
-            // and we must do nothing.
-            await fitTab.webContents.executeJavaScript(`
-              (function() {
-                const gameSwf = document.querySelector('.box-game .game-swf');
-                if (!gameSwf) return;
-                const wrap = document.querySelector('.box-wrap');
-                if (!wrap) return;
-                wrap.style.zoom = ${scale};
-              })()
-            `)
-          }
+          const fitTab = this.windows.find((w) => w.window.id === meta.windowId)?.tabs.selected
+          if (fitTab)
+            console.log(
+              'Game zoom:',
+              await zoomGameTab(fitTab.webContents, data?.mode === 'pixel' ? 'pixel' : 'fit'),
+            )
           break
         }
         case 'webui-display-mode-changed': {
