@@ -8,15 +8,13 @@ Built on [electron-browser-shell](https://github.com/samuelmaddock/electron-brow
 
 ## About this fork
 
-This is a fork of [planetarian/damecon-browser](https://github.com/planetarian/damecon-browser), **focused on macOS** (Apple Silicon first).
+This is a fork of [planetarian/damecon-browser](https://github.com/planetarian/damecon-browser), **focused on macOS**.
 
-- **macOS is the maintained platform.** Releases ship a macOS arm64 build. Windows and Linux builds are still produced by CI, but they are untested and not a priority.
-- **Proxy and KCCacheProxy (KCCP) can be chained.** An HTTP/SOCKS5 proxy handles everything, and KCCP can sit in front of it for game servers only, so it works on networks where every connection needs a proxy. KCCP runs built in (its own downloads also use the proxy) or as an external instance. KCCP was rebuilt for this fork: upstream's KCCP modes and settings are not carried over.
+- **macOS is the maintained platform.** Releases ship builds for Apple Silicon and Intel Macs. CI also builds for Windows and Linux; those builds are untested.
+- **Proxy and KCCacheProxy (KCCP) can be chained.** An HTTP/SOCKS5 proxy handles everything, and KCCP can sit in front of it for game servers only, so it works on networks where every connection needs a proxy. KCCP runs built in (its own downloads also use the proxy) or as an external instance.
 - **Asset mods**: KCCP mods, classic `.hack` files and ship `config.ini` files (岛风GO format).
-- **Upgraded to Electron 44** (upstream stays on Electron 25).
-- The app auto-updater is removed, because it pointed at upstream's update server. Update by downloading a new release. KC3Kai still updates itself.
-
-See the [Releases page](https://github.com/yecl/damecon-browser/releases) for the full list of changes.
+- **Electron 44.**
+- **Updates**: new versions are published on the [Releases page](https://github.com/yecl/damecon-browser/releases); KC3Kai updates itself.
 
 ## ⚠️ Notice
 
@@ -34,13 +32,11 @@ Seriously, I've literally never worked with Electron before. There's some real s
 
 ### From a Release build (macOS):
 
-Requires macOS 13 (Ventura) or later, on Apple Silicon.
+Requires macOS 13 (Ventura) or later.
 
-From the [Releases page](https://github.com/yecl/damecon-browser/releases/latest), download `damecon-browser-*-arm64.dmg`, open it and drag Damecon to Applications.
+From the [Releases page](https://github.com/yecl/damecon-browser/releases/latest), download `damecon-browser-*-arm64.dmg` (Apple Silicon) or `damecon-browser-*-x64.dmg` (Intel), open it and drag Damecon to Applications.
 
 The build is signed ad-hoc but not notarized, so macOS blocks the first launch as coming from an unidentified developer. Open it once, then go to System Settings → Privacy & Security and click `Open Anyway` (on macOS 14 and older, right-clicking the app and choosing Open also works).
-
-If macOS instead says the app is damaged (older builds), remove the download quarantine flag: `xattr -dr com.apple.quarantine /Applications/damecon-browser.app`.
 
 ### From source code, using `yarn`:
 
