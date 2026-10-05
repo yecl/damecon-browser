@@ -28,6 +28,7 @@ const supportsPreferredSize = () => {
 
 export class PopupView extends EventEmitter {
   static POSITION_PADDING = 5
+  static SCROLLBAR_SLACK = 20
 
   static BOUNDS = {
     minWidth: 25,
@@ -168,11 +169,13 @@ export class PopupView extends EventEmitter {
   setSize(rect: Partial<Electron.Rectangle>) {
     if (!this.browserWindow || !this.parent) return
 
-    const width = Math.floor(
+    // Round up: at fractional display scales a floored size is a fraction of a pixel smaller than
+    // the content, which overflows and shows scrollbars.
+    const width = Math.ceil(
       Math.min(PopupView.BOUNDS.maxWidth, Math.max(rect.width || 0, PopupView.BOUNDS.minWidth)),
     )
 
-    const height = Math.floor(
+    const height = Math.ceil(
       Math.min(PopupView.BOUNDS.maxHeight, Math.max(rect.height || 0, PopupView.BOUNDS.minHeight)),
     )
 
@@ -271,6 +274,20 @@ export class PopupView extends EventEmitter {
   private updatePreferredSize = (event: Electron.Event, size: Electron.Size) => {
     d('updatePreferredSize', size)
     this.usingPreferredSize = true
+
+    // Classic (non-overlay) scrollbars take up layout space: showing one changes the preferred
+    // size, the resize hides it, and the size flips back, forever. Once shown, don't shrink by
+    // up to a scrollbar's width so the popup settles at the larger size.
+    if (!this.hidden && this.browserWindow) {
+      const current = this.browserWindow.getContentBounds()
+      const settle = (next: number, now: number) =>
+        next < now && now - next <= PopupView.SCROLLBAR_SLACK ? now : next
+      size = {
+        width: settle(size.width, current.width),
+        height: settle(size.height, current.height),
+      }
+    }
+
     this.setSize(size)
     this.updatePosition()
 
