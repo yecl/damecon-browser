@@ -69,10 +69,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: damecon-windows-${{ matrix.arch }}
-          path: |
-            packages/shell/out/make/**/*.exe
-            packages/shell/out/make/**/*.zip
-            packages/shell/out/make/**/*.nupkg
+          path: packages/shell/out/make/**/*.zip
 
   build-linux:
     runs-on: ubuntu-latest
