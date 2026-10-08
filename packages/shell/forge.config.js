@@ -1,6 +1,18 @@
 const path = require('path')
 const fs = require('fs/promises')
 const { execFileSync } = require('child_process')
+const AdmZip = require('adm-zip')
+
+// The zip maker uses PowerShell on Windows, which stores paths with backslashes. The zip format
+// requires '/', and other systems' tools otherwise extract files named like "resources\app.asar".
+function fixZipSeparators(file) {
+  const zip = new AdmZip(file)
+  const entries = zip.getEntries().filter((e) => e.entryName.includes('\\'))
+  if (!entries.length) return 0
+  for (const entry of entries) entry.entryName = entry.entryName.replace(/\\/g, '/')
+  zip.writeZip(file)
+  return entries.length
+}
 
 module.exports = {
   packagerConfig: {
@@ -45,6 +57,14 @@ module.exports = {
     },
   ].filter(Boolean),
   hooks: {
+    postMake: async (config, makeResults) => {
+      for (const { artifacts } of makeResults)
+        for (const file of artifacts.filter((a) => a.endsWith('.zip'))) {
+          const fixed = fixZipSeparators(file)
+          if (fixed) console.log(`Fixed ${fixed} backslash paths in ${path.basename(file)}`)
+        }
+      return makeResults
+    },
     postPackage: async (config, options) => {
       try {
         var src = path.join(__dirname, '../../extensions')
