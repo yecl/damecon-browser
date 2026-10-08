@@ -10,7 +10,7 @@ Built on [electron-browser-shell](https://github.com/samuelmaddock/electron-brow
 
 This is a fork of [planetarian/damecon-browser](https://github.com/planetarian/damecon-browser), **focused on macOS**.
 
-- **macOS is the maintained platform.** Releases ship builds for Apple Silicon and Intel Macs. CI also builds for Windows and Linux; those builds are untested.
+- **macOS is the maintained platform.** Releases ship builds for Apple Silicon and Intel Macs, plus Windows zips (x64 and arm64) that get less testing. CI also builds for Linux; that build is untested.
 - **Proxy and KCCacheProxy (KCCP) can be chained.** An HTTP/SOCKS5 proxy handles everything, and KCCP can sit in front of it for game servers only, so it works on networks where every connection needs a proxy. KCCP runs built in (its own downloads also use the proxy) or as an external instance.
 - **Asset mods**: KCCP mods, classic `.hack` files and ship `config.ini` files (岛风GO format).
 - **Electron 44.**
