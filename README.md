@@ -38,6 +38,24 @@ From the [Releases page](https://github.com/yecl/damecon-browser/releases/latest
 
 The build is signed ad-hoc but not notarized, so macOS blocks the first launch as coming from an unidentified developer. Open it once, then go to System Settings → Privacy & Security and click `Open Anyway` (on macOS 14 and older, right-clicking the app and choosing Open also works).
 
+### Portable use (e.g. a USB drive)
+
+Damecon can keep its data in a `damecon-data` folder beside the app, and the macOS and Windows builds can share it:
+
+```
+Damecon/
+  damecon-browser.app/                ← macOS
+  damecon-browser-win32-x64-<ver>/     ← Windows zip, extracted into its own folder
+  damecon-data/                       ← created on first use, shared by both
+```
+
+In Settings → Damecon → Data, choose `Next to the app` and restart. From then on, either build uses `damecon-data` on any computer.
+
+- Settings, KC3Kai data, the KCCP cache and mods travel with the folder. DMM logins are encrypted per computer, so you sign in again on each one.
+- Don't run both builds on the same data at once.
+- On macOS, an app copied from a download still carries the quarantine flag, and macOS runs it from a temporary copy that can't see `damecon-data`. Clear the flag once: `xattr -dr com.apple.quarantine /path/to/damecon-browser.app`.
+- To update, replace the app or extract the new Windows zip beside the old one; `damecon-data` stays.
+
 ### From source code, using `yarn`:
 
 Requires Node.js 22 (22.12 or later).

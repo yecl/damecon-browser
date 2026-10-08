@@ -36,6 +36,7 @@ class Settings {
   appTab = ko.observable(this.appTabs.window)
 
   version = ''
+  translocated = false
 
   selectedConfigPage = ko.observable(0)
 
@@ -83,9 +84,12 @@ class Settings {
   ]
 
   dataPath = () =>
-    ({ home: this.paths.home, appdata: this.paths.appData, appdir: this.paths.app })[
-      this.config.app.data.location()
-    ]
+    ({
+      home: this.paths.home,
+      appdata: this.paths.appData,
+      appdir: this.paths.app,
+      custom: this.config.app.data.customPath(),
+    })[this.config.app.data.location()]
 
   // class for a segmented-control button bound to an observable option
   seg = (option, value) => `btn ${option() === value ? 'btn-primary' : 'btn-outline-primary'}`
@@ -549,6 +553,7 @@ class Settings {
       'get-damecon-info',
     )
     this.paths = appInfo.paths
+    this.translocated = appInfo.translocated
     this.version = appInfo.version
     await this.prepConfigProperties()
     console.log('done prepping config', this.config)

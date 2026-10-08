@@ -174,7 +174,28 @@
           <button type="button" class="btn btn-outline-secondary" data-bind="click: getCustomDataPath"><i class="fa-regular fa-folder-open"></i> Browse</button>
         </div>
         <!-- /ko -->
-        <p class="small text-muted mb-0">Restart Damecon for a new location to take effect.</p>
+        <!-- ko if: dataPath() && dataPath() !== paths.current -->
+        <p class="small mb-2">
+          <span class="text-muted">In use until you restart:</span>
+          <code class="sensitive selectable" data-bind="text: paths.current"></code>
+        </p>
+        <!-- /ko -->
+        <!-- ko if: config.app.data.location() === 'appdir' && translocated -->
+        <div class="dm-error mb-2">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          macOS is running this app from a temporary copy, so it can't find the folder next to it. Run
+          <code>xattr -dr com.apple.quarantine</code> on the app, then start it again.
+        </div>
+        <!-- /ko -->
+        <p class="small text-muted mb-0">
+          Restart Damecon to switch. Existing data isn't moved: a new location starts with fresh settings,
+          KC3Kai and cache.
+        </p>
+        <p class="small text-muted mb-0 mt-1" data-bind="visible: config.app.data.location() === 'appdir'">
+          Portable: put the macOS app and the extracted Windows folder side by side (e.g. on a USB drive) and both
+          use the <code>damecon-data</code> folder beside them. DMM logins are encrypted per computer, so you'll
+          sign in again on each one.
+        </p>
       </div>
       <h5>Maintenance</h5>
       <div class="settings-group">

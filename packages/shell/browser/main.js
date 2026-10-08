@@ -99,29 +99,57 @@ updateConfigDefaults({ isSquirrel, preexisting })
 // Read template config from appDir to determine dataPath
 const templateStore = new ConfigStore('damecon-browser', {}, cfgOpts)
 populateConfigDefaults(templateStore.all, configSchema, () => {})
-const dataLocation =
-  templateStore.get('app.data.location') || configSchema.app.data.location.default
 
-// Resolve dataPath
-let dataPath = appDir
-switch (dataLocation) {
-  case 'home':
-    dataPath = homeDataLocation
-    break
-  case 'appdata':
-    dataPath = appDataDir
-    break
-  case 'appdir':
-    if (process.platform === 'darwin' && appDir.match(/\.app[\\/]Contents$/i)) {
-      dataPath = path.join(path.dirname(path.dirname(appDir)), 'damecon-data')
-    }
-    break
-  case 'custom': {
-    const customPath = templateStore.get('app.data.customPath')
-    if (customPath && fsSync.existsSync(customPath)) dataPath = customPath
-    break
+// "Next to the app": a damecon-data folder beside the app, i.e. beside the .app on macOS and beside
+// the extracted app folder on Windows/Linux. Builds for both systems placed in one folder (e.g. on
+// a USB drive) therefore share it. Older portable copies kept userdata inside the app folder.
+const isMacBundle = process.platform === 'darwin' && /\.app[\\/]Contents$/i.test(appDir)
+const appDirDataPath = isMacBundle
+  ? path.join(path.dirname(path.dirname(appDir)), 'damecon-data')
+  : app.isPackaged && !preexisting
+    ? path.join(path.dirname(appDir), 'damecon-data')
+    : appDir
+// macOS runs quarantined apps from a random read-only copy, where damecon-data can't be found
+const isTranslocated = /[\\/]AppTranslocation[\\/]/.test(appDir)
+
+const readJson = (file) => {
+  try {
+    return JSON.parse(fsSync.readFileSync(file, 'utf8'))
+  } catch {
+    return null
   }
 }
+
+// Where the data lives is decided, in order, by:
+// 1. a portable damecon-data beside the app whose config chose "Next to the app", so the app
+//    finds its data on any computer;
+// 2. this computer's choice, kept in the default app data folder (it can't be stored in the data
+//    folder it points to, nor in the macOS bundle, which signing seals and updates replace);
+// 3. the template config in appDir, then the default.
+const useLocator = !app.commandLine.hasSwitch('config-path')
+const locatorPath = path.join(appDataDir, 'data-location.json')
+const portable =
+  useLocator && readJson(path.join(appDirDataPath, 'config.json'))?.app?.data?.location === 'appdir'
+const locator = useLocator && !portable ? readJson(locatorPath) : null
+const chosenLocation = portable
+  ? 'appdir'
+  : locator?.location ||
+    templateStore.get('app.data.location') ||
+    configSchema.app.data.location.default
+const customPath = locator ? locator.customPath : templateStore.get('app.data.customPath')
+
+// a custom folder that's gone falls back to the default rather than the app folder
+const dataLocation =
+  chosenLocation === 'custom' && !(customPath && fsSync.existsSync(customPath))
+    ? 'appdata'
+    : chosenLocation
+const dataPath =
+  {
+    home: homeDataLocation,
+    appdata: appDataDir,
+    appdir: appDirDataPath,
+    custom: customPath,
+  }[dataLocation] || appDataDir
 
 // Use dataPath/config.json as the real config location
 if (app.isPackaged) {
@@ -160,7 +188,20 @@ if (!configSchema.proxy.mode.options.includes(cfg.proxy.mode)) {
 }
 delete cfg.proxy.method
 delete cfg.proxy.client.httpsPort
+// show the location actually in use (a choice saved only in this config never took effect)
+cfg.app.data.location = dataLocation
+if (dataLocation === 'custom') cfg.app.data.customPath = customPath
 configStore.all = cfg // save with updated defaults
+
+const saveDataLocation = () => {
+  if (!useLocator) return
+  const data = {
+    location: configStore.get('app.data.location'),
+    customPath: configStore.get('app.data.customPath'),
+  }
+  fsSync.mkdirSync(path.dirname(locatorPath), { recursive: true })
+  fsSync.writeFileSync(locatorPath, JSON.stringify(data, null, 2))
+}
 
 const KC_GAME_HOST = /^w\d{2}[a-z]\.kancolle-server\.com$/
 
@@ -771,9 +812,11 @@ class Browser extends EventEmitter {
             version: `${app.getName()} v${app.getVersion()}`,
             paths: {
               home: homeDataLocation,
-              app: appDir,
+              app: appDirDataPath,
               appData: appDataDir,
+              current: dataPath,
             },
+            translocated: isTranslocated,
           }
           break
         case 'get-damecon-version':
@@ -787,7 +830,9 @@ class Browser extends EventEmitter {
           break
         case 'set-config-item':
           result = configStore.set(data.key, data.value)
-          if (data.key.startsWith('proxy.')) {
+          if (data.key.startsWith('app.data.')) {
+            saveDataLocation()
+          } else if (data.key.startsWith('proxy.')) {
             await this.applyProxy()
           } else if (data.key == 'kc3kai.update.channel') {
             if (kc3ExtensionId) this.session.extensions.removeExtension(kc3ExtensionId)
