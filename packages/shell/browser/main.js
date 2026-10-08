@@ -18,6 +18,7 @@ import { HttpsProxyAgent } from 'https-proxy-agent'
 import { SocksProxyAgent } from 'socks-proxy-agent'
 import * as builtinKccp from './kccp'
 import { zoomGameTab } from './game-zoom'
+import { pinKc3Id } from './kc3-id'
 
 const defaultAgents = { http: http.globalAgent, https: https.globalAgent }
 
@@ -1679,6 +1680,7 @@ class Browser extends EventEmitter {
 
     let kc3
     try {
+      pinKc3Id(kc3Path, configStore.get('kc3kai.update.channel'))
       kc3 = await this.session.extensions.loadExtension(kc3Path)
     } catch (error) {
       console.error(
