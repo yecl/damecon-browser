@@ -151,6 +151,18 @@
         </label>
         <p class="small text-muted mb-0">Experimental. Keeps DMM's region cookie set so the game page doesn't reject you for being outside Japan.</p>
       </div>
+      <h5>Game</h5>
+      <div class="settings-group">
+        <div class="dm-field">
+          <label>Frame rate</label>
+          <div class="btn-group btn-group-sm" role="group">
+            <!-- ko foreach: ['60', '120', '144', '165', '240'] -->
+            <button type="button" data-bind="attr: { class: $parent.seg($parent.config.kancolle.fps, $data) }, click: () => $parent.config.kancolle.fps($data), text: $data"></button>
+            <!-- /ko -->
+          </div>
+        </div>
+        <p class="small text-muted mb-0">The game runs at 60 FPS. Higher rates are smoother on high refresh rate displays and use more CPU/GPU. Pick your display's refresh rate or lower. Applies when the game is reloaded.</p>
+      </div>
       <!-- /ko -->
 
       <!-- ko if: appTab() === appTabs.application -->

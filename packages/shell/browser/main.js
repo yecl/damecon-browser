@@ -1212,6 +1212,18 @@ class Browser extends EventEmitter {
       });
     }());`
 
+  // The game's init sets createjs's Ticker to 60 FPS (TIMEOUT mode). Raise it once, after that,
+  // like Kantai3D does. Battles lower it briefly for hit-stop and restore what was set.
+  gameFpsJs = (fps) => `
+    (function() {
+      const timer = setInterval(() => {
+        const ticker = window.createjs?.Ticker
+        if (ticker?.framerate !== 60) return
+        ticker.framerate = ${fps}
+        clearInterval(timer)
+      }, 500)
+    }());`
+
   canvasUpdateJs = `
     (function() {
       console.log("Running canvas preserveDrawingBuffer injection.", document?.URL)
@@ -1469,6 +1481,9 @@ class Browser extends EventEmitter {
         const skip = ['devtools:', 'about:']
         if (!skip.some((s) => url.startsWith(s))) frame.executeJavaScript(this.canvasUpdateJs)
         if (isCustomDevtoolsPanel) frame.executeJavaScript(this.devtoolsPolyfillJs)
+        const fps = Number(configStore.get('kancolle.fps'))
+        if (fps > 60 && KC_GAME_HOST.test(new URL(url).hostname))
+          frame.executeJavaScript(this.gameFpsJs(fps))
       },
     )
   }

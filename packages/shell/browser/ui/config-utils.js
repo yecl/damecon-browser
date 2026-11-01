@@ -21,6 +21,7 @@ const configSchema = {
   },
   kancolle: {
     forceCookieHack: { type: 'bool', default: true },
+    fps: { type: 'option', options: ['60', '120', '144', '165', '240'], default: '60' },
   },
   window: {
     state: {
