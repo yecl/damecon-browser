@@ -579,10 +579,7 @@ class Browser extends EventEmitter {
     console.log(`Built-in KCCP started on ${key}, data in ${hideHome(dataDir)}`)
   }
 
-  tabMenuItems(tabId) {
-    const tab = this.windows.flatMap((w) => w.tabs.tabList).find((t) => t.id == tabId)
-    if (!tab) return []
-    const wc = tab.webContents
+  tabMenuItems(wc) {
     return [
       new MenuItem({
         label: wc.isAudioMuted() ? 'Unmute tab' : 'Mute tab',
@@ -1224,6 +1221,14 @@ class Browser extends EventEmitter {
       }, 500)
     }());`
 
+  // The game treats any mouse button as a click. A right click whose button-up reaches the page
+  // before the context menu opens (e.g. a two-finger trackpad click) presses whatever is under it.
+  gameLeftClickOnlyJs = `
+    (function() {
+      for (const type of ['pointerdown', 'pointerup', 'mousedown', 'mouseup'])
+        addEventListener(type, (e) => { if (e.button > 0) e.stopImmediatePropagation() }, true)
+    }());`
+
   canvasUpdateJs = `
     (function() {
       console.log("Running canvas preserveDrawingBuffer injection.", document?.URL)
@@ -1405,17 +1410,26 @@ class Browser extends EventEmitter {
 
     webContents.on('context-menu', async (event, params) => {
       let tabItems = []
+      // On a tab, the menu's Back/Forward/Reload/Inspect act on that tab instead of the tab strip
+      let menuTarget = webContents
       if (this.windows.some((w) => w.webContents === webContents)) {
         // the tab strip reports the clicked tab over IPC, which may land just after this event
         await delay(30)
         const target = this.tabMenuTarget
         this.tabMenuTarget = null
-        if (target && Date.now() - target.at < 1000) tabItems = this.tabMenuItems(target.tabId)
+        const tab =
+          target &&
+          Date.now() - target.at < 1000 &&
+          this.windows.flatMap((w) => w.tabs.tabList).find((t) => t.id == target.tabId)
+        if (tab) {
+          menuTarget = tab.webContents
+          tabItems = this.tabMenuItems(menuTarget)
+        }
       }
 
       const menu = buildChromeContextMenu({
         params,
-        webContents,
+        webContents: menuTarget,
         extensionMenuItems: this.extensions.getContextMenuItems(webContents, params),
         openLink: (url, disposition) => {
           const activeWin = this.getFocusedWindow()
@@ -1481,9 +1495,11 @@ class Browser extends EventEmitter {
         const skip = ['devtools:', 'about:']
         if (!skip.some((s) => url.startsWith(s))) frame.executeJavaScript(this.canvasUpdateJs)
         if (isCustomDevtoolsPanel) frame.executeJavaScript(this.devtoolsPolyfillJs)
-        const fps = Number(configStore.get('kancolle.fps'))
-        if (fps > 60 && KC_GAME_HOST.test(new URL(url).hostname))
-          frame.executeJavaScript(this.gameFpsJs(fps))
+        if (KC_GAME_HOST.test(new URL(url).hostname)) {
+          frame.executeJavaScript(this.gameLeftClickOnlyJs)
+          const fps = Number(configStore.get('kancolle.fps'))
+          if (fps > 60) frame.executeJavaScript(this.gameFpsJs(fps))
+        }
       },
     )
   }
