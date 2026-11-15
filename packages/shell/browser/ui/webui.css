@@ -1,189 +1,116 @@
 :root {
+  /* After mygo.egoist.dev: shadcn neutral with gopher blue, light or dark with the brightness setting */
+  --chrome-bg-color: oklch(1 0 0);
+  --chrome-mid-color: oklch(0.94 0 0);
+  --chrome-fg-color: oklch(1 0 0);
+  --chrome-text-color: oklch(0.145 0 0);
+  --control-text-color: oklch(0.556 0 0);
+  --hairline: oklch(0.922 0 0);
+  --hover-bg: oklch(0.145 0 0 / 5%);
+  --input-bg: transparent;
+  --tabs-bg: oklch(0.97 0 0);
+  --tab-active-bg: oklch(1 0 0);
+  --popover-bg: oklch(1 0 0);
+  --content-bg-color: oklch(1 0 0);
+  --content-fg-color: oklch(1 0 0);
+  --content-text-color: oklch(0.145 0 0);
+  --content-hover-color: oklch(0.145 0 0 / 4%);
+  --content-link-color: oklch(0.5 0.11 228);
+  --card-bg: var(--content-fg-color);
+  --muted-bg: oklch(0.97 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-fg: oklch(0.985 0 0);
+  --ring: oklch(0.69 0.13 224);
+  --radius: 8px;
+  --scrollbar-thumb: oklch(0.145 0 0 / 18%);
+  --scrollbar-thumb-hover: oklch(0.145 0 0 / 32%);
   /* electron-chrome-extensions colors */
-  --browser-action-badge-outline: var(--tab-color);
-  --control-hover-light-bg-color: #ffffff01;
-  --control-hover-dark-bg-color: #ffffff01;
-  --control-hover-layered-bg-color: #ffffff2f;
-  --control-hover-active-bg-color: #ffffff3f;
-}
-
-#root.theme-electron-shell {
-  --chrome-fg-color: #745c97;
-  --chrome-mid-color: #544a79;
-  --chrome-bg-color: #39375b;
-}
-
-/* monochrome themes */
-#root.theme-noir {
-  --chrome-fg-color: #404040;
-  --chrome-mid-color: #303030;
-  --chrome-bg-color: #202020;
-}
-
-#root.theme-haku {
-  --chrome-fg-color: #f0f0f0;
-  --chrome-mid-color: #d7d7d7;
-  --chrome-bg-color: #d0d0d0;
-}
-
-/* dark themes */
-#root.theme-damecon {
-  --chrome-fg-color: #6e35ae;
-  --chrome-mid-color: #552887;
-  --chrome-bg-color: #3d1d61;
-}
-
-#root.theme-andra {
-  --chrome-fg-color: #0c4c7c;
-  --chrome-mid-color: #083a60;
-  --chrome-bg-color: #062a46;
-}
-
-#root.theme-daybreak {
-  --chrome-fg-color: #7d6180;
-  --chrome-mid-color: #695069;
-  --chrome-bg-color: #452c4b;
-}
-
-#root.theme-savatieri {
-  --chrome-fg-color: #b04858;
-  --chrome-mid-color: #7b343e;
-  --chrome-bg-color: #612931;
-}
-
-#root.theme-souya {
-  --chrome-fg-color: #db5e26;
-  --chrome-mid-color: #b64d1e;
-  --chrome-bg-color: #501514;
-}
-
-#root.theme-taiha {
-  --chrome-fg-color: #aa1d17;
-  --chrome-mid-color: #84141c;
-  --chrome-bg-color: #410b13;
-}
-
-#root.theme-yasen {
-  --chrome-fg-color: #1b2a41;
-  --chrome-mid-color: #0c1821;
-  --chrome-bg-color: #051017;
-}
-
-#root.theme-zuiun {
-  --chrome-fg-color: #356b40;
-  --chrome-mid-color: #204626;
-  --chrome-bg-color: #142a1c;
-}
-
-/* light themes */
-#root.theme-chuuha {
-  --chrome-fg-color: #f1d3a7;
-  --chrome-mid-color: #efb775;
-  --chrome-bg-color: #e48e30;
-}
-
-#root.theme-cirrus {
-  --chrome-fg-color: #f1e3e1;
-  --chrome-mid-color: #dfcac7;
-  --chrome-bg-color: #d5b2ac;
-}
-
-#root.theme-kazagumo {
-  --chrome-fg-color: #e7f2ff;
-  --chrome-mid-color: #c0eafe;
-  --chrome-bg-color: #a0e2fe;
-}
-
-#root.theme-langley {
-  --chrome-fg-color: #f5efff;
-  --chrome-mid-color: #e5d9f2;
-  --chrome-bg-color: #cdc1ff;
-}
-
-#root.theme-sagiri {
-  --chrome-fg-color: #dddfe2;
-  --chrome-mid-color: #bcc7d0;
-  --chrome-bg-color: #aab0b6;
-}
-
-#root.theme-sakura {
-  --chrome-fg-color: #ffe4e9;
-  --chrome-mid-color: #f9cfd7;
-  --chrome-bg-color: #eebac7;
-}
-
-#root.theme-sammy {
-  --chrome-fg-color: #eef1ff;
-  --chrome-mid-color: #dae7ff;
-  --chrome-bg-color: #d2daff;
-}
-
-#root.theme-seafoam {
-  --chrome-fg-color: #effce7;
-  --chrome-mid-color: #d7f0ca;
-  --chrome-bg-color: #cae8bd;
-}
-
-/* dark themes */
-#root.theme-noir,
-#root.theme-damecon,
-#root.theme-andra,
-#root.theme-daybreak,
-#root.theme-savatieri,
-#root.theme-souya,
-#root.theme-taiha,
-#root.theme-yasen,
-#root.theme-zuiun {
-  --chrome-text-color: #ececec;
-  --control-text-color: #ecececc0;
-  --control-hover-light-bg-filter: saturate(110%) brightness(110%);
-  --control-hover-dark-bg-filter: saturate(110%) brightness(120%);
-  --control-input-bg-color: var(--chrome-bg-color);
-  --control-input-bg-filter: saturate(100%) brightness(75%);
-}
-
-/* light themes */
-#root.theme-haku,
-#root.theme-chuuha,
-#root.theme-cirrus,
-#root.theme-kazagumo,
-#root.theme-langley,
-#root.theme-sagiri,
-#root.theme-sakura,
-#root.theme-sammy,
-#root.theme-seafoam {
-  --chrome-text-color: #171717;
-  --control-text-color: #171717c0;
-  --control-hover-light-bg-filter: saturate(110%) brightness(105%);
-  --control-hover-dark-bg-filter: saturate(110%) brightness(105%);
-  --control-input-bg-color: var(--chrome-fg-color);
-  --control-input-bg-filter: saturate(90%) brightness(110%);
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    --content-bg-color: #f7f7f7;
-    --content-fg-color: #ffffff;
-    --content-hover-color: #7f7f7f0a;
-    --content-text-color: #202020;
-    --content-link-color: #1692f2;
-    --content-link-color-hover: #1056b2;
-    --content-link-color-active: #1692f2;
-    --content-link-color-visited: #1692f2;
-  }
+  --browser-action-badge-outline: var(--chrome-bg-color);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --content-bg-color: #323232;
-    --content-fg-color: #3a3a3a;
-    --content-hover-color: #7f7f7f0a;
-    --content-text-color: #ececec;
-    --content-link-color: #4db2ff;
-    --content-link-color-hover: #80c8ff;
-    --content-link-color-active: #4db2ff;
-    --content-link-color-visited: #4db2ff;
+    --chrome-bg-color: oklch(0.145 0 0);
+    --chrome-mid-color: oklch(0.269 0 0);
+    --chrome-fg-color: oklch(0.145 0 0);
+    --chrome-text-color: oklch(0.985 0 0);
+    --control-text-color: oklch(0.708 0 0);
+    --hairline: oklch(1 0 0 / 10%);
+    --hover-bg: oklch(1 0 0 / 7%);
+    --input-bg: oklch(1 0 0 / 4.5%);
+    --tabs-bg: oklch(0.205 0 0);
+    --tab-active-bg: oklch(0.3 0 0);
+    --popover-bg: oklch(0.205 0 0);
+    --content-bg-color: oklch(0.145 0 0);
+    --content-fg-color: oklch(0.175 0 0);
+    --content-text-color: oklch(0.985 0 0);
+    --content-hover-color: oklch(1 0 0 / 4%);
+    --content-link-color: oklch(0.8 0.11 222);
+    --muted-bg: oklch(0.269 0 0);
+    --primary: oklch(0.922 0 0);
+    --primary-fg: oklch(0.205 0 0);
+    --ring: oklch(0.76 0.12 222);
+    --scrollbar-thumb: oklch(1 0 0 / 18%);
+    --scrollbar-thumb-hover: oklch(1 0 0 / 32%);
   }
+}
+
+/* Geist (OFL, assets/webfonts/geist-OFL.txt); CJK falls back to the system font */
+@font-face {
+  font-family: 'Geist';
+  src: url('assets/webfonts/geist-latin-wght-normal.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: block;
+}
+
+/* Lucide icons (ISC, assets/icons/lucide/LICENSE), drawn in currentColor through a mask */
+.lucide {
+  display: inline-block;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+  background-color: currentColor;
+  -webkit-mask: var(--icon) center / contain no-repeat;
+}
+.lucide-arrow-left {
+  --icon: url('assets/icons/lucide/arrow-left.svg');
+}
+.lucide-arrow-right {
+  --icon: url('assets/icons/lucide/arrow-right.svg');
+}
+.lucide-rotate-cw {
+  --icon: url('assets/icons/lucide/rotate-cw.svg');
+}
+.lucide-maximize {
+  --icon: url('assets/icons/lucide/maximize.svg');
+}
+.lucide-plus {
+  --icon: url('assets/icons/lucide/plus.svg');
+}
+.lucide-x {
+  --icon: url('assets/icons/lucide/x.svg');
+}
+.lucide-minus {
+  --icon: url('assets/icons/lucide/minus.svg');
+}
+.lucide-square {
+  --icon: url('assets/icons/lucide/square.svg');
+}
+.lucide-volume-2 {
+  --icon: url('assets/icons/lucide/volume-2.svg');
+}
+.lucide-volume-x {
+  --icon: url('assets/icons/lucide/volume-x.svg');
+}
+.lucide-search {
+  --icon: url('assets/icons/lucide/search.svg');
+}
+.lucide-chevron-up {
+  --icon: url('assets/icons/lucide/chevron-up.svg');
+}
+.lucide-chevron-down {
+  --icon: url('assets/icons/lucide/chevron-down.svg');
 }
 
 *,
@@ -203,17 +130,14 @@
 
 *::-webkit-scrollbar-thumb {
   border-radius: 6px;
-  background-color: var(--control-hover-layered-bg-color);
+  background-color: var(--scrollbar-thumb);
   background-clip: content-box;
   border: solid 3px transparent;
 }
 
-*::-webkit-scrollbar-thumb:hover {
-  background-color: var(--control-hover-active-bg-color);
-}
-
+*::-webkit-scrollbar-thumb:hover,
 *::-webkit-scrollbar-thumb:active {
-  background-color: var(--control-hover-layered-bg-color);
+  background-color: var(--scrollbar-thumb-hover);
 }
 
 #settings-menu::-webkit-scrollbar {
@@ -234,26 +158,27 @@ body,
 }
 
 html {
-  background: #ececec;
+  background: var(--chrome-bg-color);
 }
 
 body {
   font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', 'Ubuntu', 'Droid Sans', sans-serif;
+    'Geist',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI Variable Text',
+    'Segoe UI',
+    'Ubuntu',
+    system-ui,
+    sans-serif;
   font-size: 16px;
+  -webkit-font-smoothing: antialiased;
 }
 
-a {
-  color: var(--content-link-color);
-}
-a:hover {
-  color: var(--content-link-color-hover);
-}
-a:active {
-  color: var(--content-link-color-active);
-}
+a,
+a:hover,
 a:visited {
-  color: var(--content-link-color-visited);
+  color: var(--content-link-color);
 }
 
 ul {
@@ -272,6 +197,7 @@ ul {
   overflow-x: clip; /* don't scroll for the oversized tabstrip shadower */
   color: var(--chrome-text-color);
   background: var(--chrome-bg-color);
+  border-bottom: 1px solid var(--hairline);
 }
 
 #root[data-display-mode='maximized'] #topbar {
@@ -286,20 +212,47 @@ ul {
 
 #tabstrip {
   width: 100%;
-  height: 2rem;
+  height: 2.5rem;
   display: flex;
   flex-direction: row;
+  align-items: center;
   position: relative;
 }
 
-#tabstrip::after {
-  content: '';
-  z-index: 1;
+/* shadcn TabsList: a groove the active tab's pill slides along (segmented.js) */
+.tab-groove {
+  position: relative;
+  height: 32px;
+  display: flex;
+  min-width: 0;
+  margin-left: 6px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--tabs-bg);
+}
+
+/* a window showing only the (hidden) settings tab would otherwise keep an empty groove */
+.tab-groove:not(:has(.tab-container:not(.tab-compact))) {
+  display: none;
+}
+
+/* the sliding selection of every segmented control (segmented.js) */
+.segment-pill {
   position: absolute;
-  height: 110%; /* remove top shadow */
-  width: 110%; /* remove left/right shadow */
-  box-shadow: inset 0 0 4px 0 #0000007f;
-  bottom: 0;
+  top: 0;
+  left: 0;
+  border-radius: 7px;
+  background: var(--tab-active-bg);
+  box-shadow:
+    0 0 0 1px var(--hairline),
+    0 1px 3px rgb(0 0 0 / 8%),
+    0 1px 2px -1px rgb(0 0 0 / 8%);
+  opacity: 0;
+  transition:
+    transform 0.28s cubic-bezier(0.3, 0.7, 0.4, 1),
+    width 0.28s cubic-bezier(0.3, 0.7, 0.4, 1),
+    height 0.28s cubic-bezier(0.3, 0.7, 0.4, 1),
+    background-color 0.12s;
   pointer-events: none;
 }
 
@@ -307,9 +260,8 @@ ul {
   height: 100%;
   display: flex;
   flex-direction: row;
+  gap: 2px;
   min-width: 0;
-  padding-left: 4px;
-  z-index: 2;
 }
 
 #createtab {
@@ -318,11 +270,11 @@ ul {
   color: var(--control-text-color);
   font-weight: bold;
   font-family: 'Courier New', Courier, monospace;
-  min-width: 21px;
-  width: 21px;
-  border-radius: 3px;
-  margin: 3px;
-  margin-top: 5px;
+  min-width: 32px;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius);
+  margin: 0 4px;
   padding: 0;
   display: inline-flex;
   align-items: center;
@@ -331,35 +283,21 @@ ul {
 }
 
 #createtab:hover {
-  background: var(--control-hover-dark-bg-color);
-  backdrop-filter: var(--control-hover-dark-bg-filter);
+  background: var(--hover-bg);
+  color: var(--chrome-text-color);
 }
 
 .tab-container {
-  margin: 0px -6px 0 -6px;
-  padding: 4px 6px 0 6px;
+  height: 100%;
   position: relative;
   overflow: hidden;
-  width: 12rem;
-  min-width: 44px;
+  width: 13rem;
+  min-width: 40px;
+  transition: opacity 0.2s;
 }
 
+/* the settings tab; #settings-button stands in for it */
 .tab-container.tab-compact {
-  width: 44px;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-items: center;
-}
-.tab-container.tab-compact .tab {
-  flex: 1 1 auto;
-  justify-content: center;
-}
-.tab-container.tab-compact .favicon[src] {
-  margin: 0 !important;
-}
-.tab-container.tab-compact .title,
-.tab-container.tab-compact .controls {
   display: none;
 }
 
@@ -384,8 +322,12 @@ ul {
 }*/
 
 .tab {
-  padding: 0.2rem 0.4rem;
-  border-radius: 4px 4px 0 0;
+  padding: 0 4px 0 10px;
+  border-radius: 7px;
+  color: var(--control-text-color);
+  transition:
+    background-color 0.15s,
+    color 0.15s;
   overflow: hidden;
   display: flex;
   flex-wrap: nowrap;
@@ -396,15 +338,71 @@ ul {
 }
 
 .tab:hover {
-  background-color: var(--control-hover-dark-bg-color);
-  backdrop-filter: var(--control-hover-dark-bg-filter);
+  background-color: var(--hover-bg);
+  color: var(--chrome-text-color);
   z-index: 2;
 }
 
 .tab-container.tab-active .tab {
-  background-color: var(--chrome-fg-color);
-  backdrop-filter: none;
-  z-index: 2;
+  background-color: transparent;
+  color: var(--chrome-text-color);
+}
+
+/* pressed but not yet released: a deeper fill, or a deeper pill on the selected tab */
+.tab-container.tab-pressed:not(.tab-active) .tab {
+  background-color: color-mix(in srgb, var(--chrome-text-color) 11%, transparent);
+}
+.tab-groove:has(.tab-active.tab-pressed) .segment-pill,
+.btn-group:has(> .btn-primary:active) > .segment-pill {
+  background: color-mix(in srgb, var(--tab-active-bg), var(--chrome-text-color) 8%);
+}
+
+/* Safari-style: while its address is edited, the active tab grows to fill the strip and the others
+   shrink away. The widths animate from webui.js (setEditingTab), as filling and fitting can't be
+   interpolated here */
+.tab-groove:has(.tab-editing),
+.tab-groove:has(.tab-editing) .tab-list {
+  flex-grow: 1;
+}
+/* the empty drag area would otherwise split the free space with the groove */
+#tabstrip:has(.tab-editing) .app-drag-right {
+  flex-grow: 0;
+}
+.tab-groove:has(.tab-editing) .tab-container:not(.tab-editing) {
+  width: 0;
+  min-width: 0;
+  /* cancel the list's 2px gap, so the shrunk tabs leave nothing behind */
+  margin-right: -2px;
+  opacity: 0;
+  pointer-events: none;
+}
+.tab-container.tab-editing {
+  width: 100%;
+}
+.tab-container.tab-editing .controls {
+  display: none;
+}
+.tab-groove:has(.tab-editing) .segment-pill {
+  box-shadow:
+    0 0 0 1px var(--ring),
+    0 0 0 3px color-mix(in srgb, var(--ring) 35%, transparent);
+}
+.tab-address {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 22px;
+  padding: 0 4px;
+  border: none;
+  border-radius: 5px;
+  outline: none;
+  background: transparent;
+  color: var(--chrome-text-color);
+  font: inherit;
+  font-size: 13px;
+  user-select: text;
+}
+.tab-address::selection {
+  background: color-mix(in srgb, var(--ring) 35%, transparent);
 }
 .tab-container::after {
   content: '';
@@ -412,27 +410,22 @@ ul {
   z-index: 3;
   position: absolute;
   top: 0;
-  left: 6px;
-  right: 6px;
+  left: 0;
+  right: 0;
   bottom: 0;
-}
-.tab-container.tab-active::after {
-  margin: 4px 0 0 0;
-  border-radius: 4px 4px 0 0;
-  box-shadow: 0px 0px 4px 0px #0000007f;
 }
 
 .tab-container.tab-separator-right::after {
   top: 8px;
-  bottom: 5px;
-  border-right: 1px solid var(--control-text-color);
-  opacity: 0.75;
+  bottom: 8px;
+  right: -2px;
+  border-right: 1px solid var(--hairline);
 }
 
 .tab .favicon[src] {
   width: 16px;
   height: 16px;
-  margin-right: 0.2rem;
+  margin-right: 8px;
   pointer-events: none;
 }
 
@@ -442,8 +435,12 @@ ul {
   min-width: 0;
   text-overflow: ellipsis;
   overflow: hidden;
-  font-size: 0.725rem;
+  font-size: 13px;
   user-select: none;
+}
+
+.tab-container.tab-active .tab .title {
+  font-weight: 500;
 }
 
 .tab .controls {
@@ -451,27 +448,33 @@ ul {
   font-size: 0;
 }
 
-.tab .controls .control {
+/* small, as shadcn's close buttons: the fill only just wraps the icon, well inside the 26px tab.
+   #tabstrip so it outranks the strip's 32px `#tabstrip .control` */
+#tabstrip .tab .controls .control {
   background-color: transparent;
   border: none;
-  border-radius: 20%;
+  border-radius: 4px;
   padding: 0;
-  margin-left: 0.2rem;
-  width: 1rem;
-  height: 1rem;
+  margin-left: 4px;
+  width: 16px;
+  height: 16px;
   color: var(--control-text-color);
-  font-size: 0.7rem;
   vertical-align: middle;
   line-height: 0;
+}
+
+#tabstrip .tab .controls .control .lucide {
+  width: 12px;
+  height: 12px;
 }
 
 .tab .controls .control.close {
   color: var(--control-text-color);
 }
 
-.tab .controls .control.close:hover,
-.tab .controls .control.audio:hover {
-  background-color: var(--control-hover-layered-bg-color);
+#tabstrip .tab .controls .control:hover {
+  background-color: var(--hover-bg);
+  color: var(--chrome-text-color);
 }
 
 .tab .tab-close > * {
@@ -493,39 +496,94 @@ ul {
   flex: 1 0 auto;
 }
 
-.window-controls {
+/* Tab strip groups: page navigation before the tabs; game view, then app-wide buttons after them */
+.strip-group {
   display: flex;
-  flex-direction: row;
+  align-items: center;
+  gap: 2px;
   flex: 0 0 auto;
 }
+.nav-controls {
+  margin-left: 6px;
+}
+.view-controls::after {
+  content: '';
+  width: 1px;
+  height: 18px;
+  margin: 0 6px 0 4px;
+  background: var(--hairline);
+}
+.app-controls {
+  margin-right: 6px;
+}
 
+#tabstrip .control,
 .window-controls .control {
-  width: 2.5rem;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  line-height: 0;
+  border-radius: var(--radius);
   background: none;
   border: none;
   color: var(--control-text-color);
 }
 
-.window-controls .control .control-text {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+#tabstrip .control:hover {
+  background: var(--hover-bg);
+  color: var(--chrome-text-color);
+}
+
+#settings-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+#settings-button img {
+  width: 18px;
+  height: 18px;
+}
+#settings-button.control-active {
+  background: var(--tabs-bg);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+}
+#settings-button .progress-circle {
+  width: 28px;
+  height: 28px;
+  top: 2px;
+  left: 2px;
+}
+
+/* Windows/Linux caption buttons, laid out as the other button groups */
+.window-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-right: 6px;
+  flex: 0 0 auto;
+}
+/* Lucide's square fills its box; a little smaller it weighs the same as the minus and the x */
+.window-controls .control#maximize .lucide {
+  width: 14px;
+  height: 14px;
 }
 
 .window-controls .control:hover {
-  background: var(--control-hover-dark-bg-color);
-  backdrop-filter: var(--control-hover-dark-bg-filter);
-  color: white;
+  background: var(--hover-bg);
+  color: var(--chrome-text-color);
 }
 
 /*----- TOOLBAR -----*/
 
 .toolbar {
-  height: 1.875rem;
+  height: 2.75rem;
   width: 100%;
   display: flex;
   align-items: center;
-  padding: 0.2rem 0.5rem;
+  gap: 4px;
+  padding: 6px 8px;
+  border-top: 1px solid var(--hairline);
   position: relative;
   z-index: 3;
   background-color: var(--chrome-fg-color);
@@ -533,11 +591,6 @@ ul {
 
 .toolbar[data-hidden] {
   display: none;
-}
-
-.toolbar .page-controls {
-  margin-right: 0.5rem;
-  white-space: nowrap;
 }
 
 .input-bar {
@@ -552,99 +605,122 @@ ul {
   width: 100%;
   height: 100%;
   border: none;
-  border-radius: 2rem;
-}
-
-.find-bar input,
-.find-bar .input-backdrop {
-  border-radius: 2px;
+  border-radius: var(--radius);
 }
 
 .input-bar input {
-  padding: 0 0.5rem;
+  padding: 0 12px;
   outline: none;
   background-color: transparent;
   color: var(--chrome-text-color);
+  font-family: inherit;
+  font-size: 13px;
   position: relative;
-}
-
-.input-bar input:focus {
-  box-shadow: 0px 0px 1px 1px #bc96ff7f;
-  color: var(--chrome-text-color);
 }
 
 .input-bar .input-backdrop {
   position: absolute;
   top: 0;
   left: 0;
-  background-color: var(--chrome-mid-color);
+  background-color: var(--input-bg);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+  transition: box-shadow 0.15s;
 }
 
 .input-bar:focus-within .input-backdrop {
-  background-color: var(--control-input-bg-color);
-  filter: var(--control-input-bg-filter);
+  box-shadow:
+    inset 0 0 0 1px var(--ring),
+    0 0 0 3px color-mix(in srgb, var(--ring) 35%, transparent);
 }
 
 .toolbar .control {
   background: none;
   border: none;
-  width: 1.5rem;
-  height: 1.5rem;
+  border-radius: var(--radius);
+  width: 32px;
+  height: 32px;
   padding: 0;
   line-height: 0;
   color: var(--control-text-color);
 }
 
 .toolbar .control:hover {
-  background: var(--control-hover-light-bg-color);
-  backdrop-filter: var(--control-hover-dark-bg-filter);
-  color: var(--control-text-color);
-  border-radius: 3px;
+  background: var(--hover-bg);
+  color: var(--chrome-text-color);
 }
 
-.search-bar.toolbar {
-  height: 100%;
-  align-items: center;
-  padding: 6px;
-  gap: 8px;
+/* Find in page: its own view, shaped into a floating card by tab.js */
+#root .search-bar.toolbar {
+  height: 100vh;
+  gap: 2px;
+  padding: 0 6px 0 12px;
+  border: none;
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 1px var(--hairline);
+  background: var(--popover-bg);
 }
-.search-bar.toolbar label {
-  font-size: small;
-  margin-bottom: 2px;
-}
-.search-bar .input-bar {
-  margin-right: 4px;
-}
-.search-bar.toolbar > div {
+.search-bar .find-icon {
   display: flex;
+  margin: 0 8px 0 0;
+  color: var(--control-text-color);
+}
+.search-bar .find-bar input {
+  padding: 0;
+}
+.search-bar .find-results {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--control-text-color);
+  padding: 0 6px;
+}
+.search-bar .find-divider {
+  width: 1px;
+  height: 18px;
+  margin: 0 4px;
+  background: var(--hairline);
+}
+
+/* keyboard focus, as shadcn's ring */
+.control:focus-visible,
+#createtab:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--ring) 60%, transparent);
+  outline-offset: 1px;
 }
 
 #close:hover {
-  background: red;
+  background: oklch(0.577 0.245 27.325);
+  color: white;
 }
 
 #actions {
   align-items: center;
-  margin-left: 8px;
+  margin-left: 4px;
   column-gap: 2px;
 }
 browser-action-list::part(action) {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius);
   background-size: 16px 16px;
 }
+browser-action-list::part(badge) {
+  border-radius: 4px;
+  font-family: inherit;
+}
 browser-action-list::part(action):hover {
-  background-color: var(--control-hover-light-bg-color);
-  backdrop-filter: var(--control-hover-dark-bg-filter);
+  background-color: var(--hover-bg);
 }
 
 #zoom-presenter {
   position: fixed;
   align-self: center;
-  border: 1px solid #ffffff7f;
-  background: #000000ff;
-  color: #ffffffaf;
-  padding: 1px 4px 2px 4px;
-  padding: 0;
-  margin: 2px;
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  background: var(--popover-bg);
+  color: var(--chrome-text-color);
+  font-size: 12px;
+  padding: 2px 8px;
+  margin: 4px;
   z-index: 3;
   display: none;
 }
@@ -656,7 +732,10 @@ browser-action-list::part(action):hover {
   position: absolute;
 }
 .progress-content {
-  background: conic-gradient(white 0% calc(var(--pct) * 1%), #ffffff1f calc(var(--pct) * 1%) 100%);
+  background: conic-gradient(
+    var(--ring) 0% calc(var(--pct) * 1%),
+    var(--hairline) calc(var(--pct) * 1%) 100%
+  );
   width: 100%;
   height: 100%;
 }
@@ -664,11 +743,10 @@ browser-action-list::part(action):hover {
 /*MacOS Modifications*/
 
 .platform-macos #tabstrip {
-  padding-left: 70px;
+  padding-left: 74px;
 }
 
-.platform-macos .window-controls .control#minimize,
-.platform-macos .window-controls .control#maximize,
-.platform-macos .window-controls .control#close {
+/* the system draws the traffic lights on macOS */
+.platform-macos .window-controls {
   display: none;
 }

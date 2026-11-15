@@ -12,18 +12,19 @@
   flex: 1 1 auto;
 }
 
+/* shadcn sidebar: icon and label rows, the active one filled */
 #settings-menu {
-  width: 100px;
-  padding-left: 6px;
-  flex: 0 1 auto;
+  width: 200px;
+  padding: 16px 12px 12px;
+  flex: 0 0 auto;
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
-  margin: 0 0 6px 0;
+  border-right: 1px solid var(--hairline);
 }
 
 #settings-menu .menu-header {
-  padding-top: 10px;
+  display: none;
 }
 
 #settings-menu .menu-header * {
@@ -35,27 +36,35 @@
   flex-direction: column;
   flex: 1 1 auto;
   width: 100%;
-  gap: 8px;
+  gap: 2px;
   overflow-y: auto;
 }
 
 #settings-menu .menu-item {
   width: 100%;
+  height: 36px;
   display: flex;
-  flex-direction: column;
   align-items: center;
+  gap: 10px;
   cursor: pointer;
-  border-radius: 4px;
-  padding: 10px 20px;
+  border-radius: var(--radius);
+  padding: 0 10px;
+  font-size: 14px;
+  color: var(--control-text-color);
+  transition:
+    background-color 0.15s,
+    color 0.15s;
 }
 
 #settings-menu .menu-item:hover {
-  background-color: var(--control-hover-light-bg-color);
-  backdrop-filter: var(--control-hover-light-bg-filter);
+  background-color: var(--hover-bg);
+  color: var(--chrome-text-color);
 }
 
 #settings-menu .menu-item[data-active] {
-  background-color: var(--chrome-mid-color);
+  background-color: var(--tabs-bg);
+  color: var(--chrome-text-color);
+  font-weight: 500;
 }
 
 #settings-menu .menu-item .icon,
@@ -64,19 +73,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 48px;
-  width: 48px;
-  font-size: 30pt;
+  height: 18px;
+  width: 18px;
+  font-size: 15px;
 }
 
 #version {
-  width: 110%;
-  padding: 0 10px 0 0;
-  text-align: center;
-  color: var(--chrome-bg-color);
-  font-size: 9pt;
+  padding: 8px 10px 0;
+  color: var(--control-text-color);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  letter-spacing: 0.05em;
   white-space: nowrap;
-  text-shadow: 1px 1px 1px var(--control-hover-layered-bg-color);
 }
 
 #settings-container {
@@ -84,30 +92,50 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 6px;
+  font-size: 14px;
 }
 
 #settings-container .settings-content {
   flex: 1 1 auto;
   background-color: var(--content-bg-color);
-  border-radius: 6px;
-  padding: 20px;
+  padding: 32px 40px;
   color: var(--content-text-color);
   width: 100%;
   overflow-y: auto;
 }
 
 #settings-container .settings {
-  max-width: 700px;
+  max-width: 720px;
+}
+
+/* page title and blurb, then sections under small mono captions, as on mygo.egoist.dev */
+#settings-container h3 {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+#settings-container h3 + p.text-muted {
+  margin-bottom: 20px;
+}
+#settings-container h5 {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--control-text-color);
+  margin: 28px 0 10px;
 }
 
 #settings-container .tab-content .settings-group {
-  border-radius: 0 0 6px 6px;
+  border-radius: 0 0 14px 14px;
 }
 #settings-container .settings-group {
-  margin-bottom: 10px;
-  background-color: var(--content-fg-color);
-  border-radius: 6px;
+  margin-bottom: 12px;
+  background-color: var(--card-bg);
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
   padding: 20px;
 }
 
@@ -350,8 +378,8 @@ input.sensitive:focus {
   height: 18px;
 }
 .route-map .hop.on {
-  background: #007bff;
-  color: #fff;
+  background: var(--primary);
+  color: var(--primary-fg);
 }
 .route-map a.hop.on:hover {
   background: #0062cc;
@@ -386,7 +414,7 @@ input.sensitive:focus {
   align-items: center;
   gap: 10px;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 500;
   margin-bottom: 6px;
 }
 .dm-switch input {
@@ -397,7 +425,7 @@ input.sensitive:focus {
   width: 36px;
   height: 20px;
   border-radius: 10px;
-  background: #7f7f7f66;
+  background: var(--hairline);
   position: relative;
   transition: background 0.15s;
   flex-shrink: 0;
@@ -414,13 +442,14 @@ input.sensitive:focus {
   transition: transform 0.15s;
 }
 .dm-switch input:checked + .slider {
-  background: #007bff;
+  background: var(--primary);
 }
 .dm-switch input:checked + .slider::after {
   transform: translateX(16px);
+  background: var(--primary-fg);
 }
 .dm-switch input:focus-visible + .slider {
-  outline: 2px solid #007bff80;
+  outline: 2px solid color-mix(in srgb, var(--ring) 60%, transparent);
   outline-offset: 2px;
 }
 .dm-address {
@@ -464,7 +493,7 @@ input.sensitive:focus {
 .dm-busy {
   margin-left: auto;
   font-size: small;
-  color: #007bff;
+  color: var(--control-text-color);
 }
 .dm-stats {
   display: grid;
@@ -474,9 +503,9 @@ input.sensitive:focus {
 .dm-stat {
   display: flex;
   flex-direction: column;
-  padding: 8px 10px;
-  border-radius: 6px;
-  background: #7f7f7f14;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--muted-bg);
 }
 .dm-stat .value {
   font-size: 1.25rem;
@@ -519,12 +548,12 @@ input.sensitive:focus {
   padding: 6px 4px;
 }
 .dm-row + .dm-row {
-  border-top: 1px solid #7f7f7f22;
+  border-top: 1px solid var(--hairline);
 }
 .dm-log {
   background: #1e1e1e;
   color: #d4d4d4;
-  border-radius: 6px;
+  border-radius: 10px;
   padding: 10px 12px;
   max-height: 480px;
   overflow-y: auto;
@@ -588,19 +617,19 @@ input.sensitive:focus {
   gap: 6px;
   padding: 4px 12px;
   border-radius: 999px;
-  border: 1px solid #7f7f7f80;
+  border: 1px solid var(--hairline);
   font-size: small;
   transition:
     background 0.15s,
     color 0.15s;
 }
 .dm-chip input:checked + span {
-  background: #007bff;
-  border-color: #007bff;
-  color: #fff;
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-fg);
 }
 .dm-chip input:focus-visible + span {
-  outline: 2px solid #007bff80;
+  outline: 2px solid color-mix(in srgb, var(--ring) 60%, transparent);
   outline-offset: 2px;
 }
 .dm-downloads .download-item {
@@ -630,4 +659,142 @@ input.sensitive:focus {
 }
 .dm-empty i {
   font-size: 2rem;
+}
+
+/* Bootstrap controls in the shadcn shape: 36px fields and buttons, 8px corners, hairline borders */
+#settings-container .text-muted {
+  color: var(--control-text-color) !important;
+}
+#settings-container .small,
+#settings-container small {
+  font-size: 13px;
+}
+#settings-container .form-control {
+  height: 36px;
+  padding: 0 12px;
+  font-size: 14px;
+  color: var(--content-text-color);
+  background-color: transparent;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+#settings-container select.form-control option {
+  color: initial;
+}
+#settings-container .form-control:focus {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 35%, transparent);
+}
+#settings-container .form-control::placeholder {
+  color: var(--control-text-color);
+}
+#settings-container .btn {
+  height: 36px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: var(--radius);
+  box-shadow: none;
+  white-space: nowrap;
+  transition:
+    background-color 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+}
+#settings-container .btn-sm {
+  height: 32px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+#settings-container .btn i {
+  margin-right: 0;
+}
+#settings-container .btn:focus,
+#settings-container .btn:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 35%, transparent);
+}
+#settings-container .btn-primary {
+  background: var(--primary);
+  border: 1px solid var(--primary);
+  color: var(--primary-fg);
+}
+#settings-container .btn-primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--primary) 90%, transparent);
+}
+#settings-container .btn-outline-secondary,
+#settings-container .btn-outline-primary,
+#settings-container .dm-tools .btn-outline-secondary,
+#settings-container .dm-address .btn-outline-secondary {
+  background: transparent;
+  border: 1px solid var(--hairline);
+  color: var(--content-text-color);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
+}
+#settings-container .btn-outline-secondary:hover:not(:disabled),
+#settings-container .btn-outline-primary:hover:not(:disabled) {
+  background: var(--muted-bg);
+}
+#settings-container .btn-outline-danger {
+  background: transparent;
+  border: 1px solid var(--hairline);
+  color: oklch(0.577 0.245 27.325);
+}
+#settings-container .btn-outline-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, oklch(0.577 0.245 27.325) 10%, transparent);
+}
+#settings-container .btn:disabled {
+  opacity: 0.5;
+}
+
+/* Segmented choices (seg() in settings.js) as a TabsList, like the tab strip */
+#settings-container .btn-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--tabs-bg);
+}
+#settings-container .btn-group > .btn {
+  /* Bootstrap overlaps grouped buttons by 1px; the pill is the group's first child now */
+  margin: 0;
+  height: 28px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--control-text-color);
+  box-shadow: none;
+}
+#settings-container .btn-group > .btn:hover:not(.btn-primary) {
+  color: var(--content-text-color);
+  background: transparent;
+}
+#settings-container .btn-group > .btn:active:not(.btn-primary) {
+  background: color-mix(in srgb, var(--content-text-color) 8%, transparent);
+}
+/* the selected segment shows through to the sliding pill (segmented.js); listed with :hover so
+   the primary button's dark hover fill doesn't cover it */
+#settings-container .btn-group > .btn-primary,
+#settings-container .btn-group > .btn-primary:hover:not(:disabled) {
+  background: transparent;
+  color: var(--content-text-color);
+  box-shadow: none;
+}
+
+#settings-container .progress {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--muted-bg);
+}
+#settings-container .progress-bar {
+  background-color: var(--primary);
 }

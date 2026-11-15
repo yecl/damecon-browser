@@ -1,6 +1,4 @@
 class Search {
-  theme = ko.observable('andra')
-  brightness = ko.observable('system')
   appInfo = ko.observable({})
   config = ko.observable()
   searchInput = ko.observable('')
@@ -60,12 +58,13 @@ class Search {
   }
 
   onKeyDown(data, ev) {
-    if (['Enter', 'F3'].includes(ev.originalEvent.code)) this.startSearch()
+    if (['Enter', 'F3'].includes(ev.originalEvent.code))
+      this.startSearch(!ev.originalEvent.shiftKey)
     return true
   }
-  async startSearch() {
+  async startSearch(forward = true) {
     const tabId = (await chrome.tabs.getCurrent()).id
-    await sendToMain('start-find-in-page', { searchInput: this.searchInput(), tabId })
+    await sendToMain('start-find-in-page', { searchInput: this.searchInput(), tabId, forward })
   }
 
   async handleFound(result) {

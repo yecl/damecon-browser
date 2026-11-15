@@ -1,6 +1,6 @@
-// Fit the KanColle game canvas to the tab, or show it at 1:1 device pixels, by setting the tab's
-// page zoom. Works on any page that embeds the game (DMM, KC3's frame modes) because it measures
-// the rendered 1200x720 canvas instead of relying on page layout.
+// Fit the KanColle game canvas to the tab by setting the tab's page zoom. Works on any page that
+// embeds the game (DMM, KC3's frame modes) because it measures the rendered 1200x720 canvas
+// instead of relying on page layout.
 //
 // In the canvas's own frame, rect size × devicePixelRatio is the canvas's size in device pixels,
 // including page zoom, the display's scale and any CSS zoom on ancestor frames (e.g. KC3's game
@@ -11,7 +11,7 @@ const MEASURE_CANVAS = `(() => {
   if (!canvas) return null
   const r = canvas.getBoundingClientRect()
   if (!r.width || !r.height) return null
-  return { width: r.width, height: r.height, top: r.top, intrinsicWidth: canvas.width, dpr: devicePixelRatio }
+  return { width: r.width, height: r.height, top: r.top, dpr: devicePixelRatio }
 })()`
 
 // Viewport of the top page, and where the frame holding the game starts (e.g. below a header)
@@ -32,24 +32,12 @@ const MAX_ZOOM = 5
 
 // All lengths in device pixels. Returns the new page zoom, rounded down to 0.001 so a fitted
 // game never overflows into a scrollbar.
-function computeGameZoom({
-  mode,
-  zoom,
-  canvasWidth,
-  canvasHeight,
-  intrinsicWidth,
-  offsetTop,
-  viewWidth,
-  viewHeight,
-}) {
-  const scale =
-    mode === 'pixel'
-      ? intrinsicWidth / canvasWidth
-      : Math.min(viewWidth / canvasWidth, viewHeight / (offsetTop + canvasHeight))
+function computeGameZoom({ zoom, canvasWidth, canvasHeight, offsetTop, viewWidth, viewHeight }) {
+  const scale = Math.min(viewWidth / canvasWidth, viewHeight / (offsetTop + canvasHeight))
   return Math.floor(Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom * scale)) * 1000) / 1000
 }
 
-async function zoomGameTab(webContents, mode) {
+async function zoomGameTab(webContents) {
   const main = webContents.mainFrame
   let found = null
   for (const frame of main.framesInSubtree) {
@@ -75,18 +63,16 @@ async function zoomGameTab(webContents, mode) {
 
   const zoom = webContents.getZoomFactor()
   const newZoom = computeGameZoom({
-    mode,
     zoom,
     canvasWidth: canvas.width * canvas.dpr,
     canvasHeight: canvas.height * canvas.dpr,
-    intrinsicWidth: canvas.intrinsicWidth,
     // nested frames inside the top-level one are assumed to start at its top edge
     offsetTop: Math.max(0, inMainFrame ? canvas.top * canvas.dpr : top.frameTop * top.dpr),
     viewWidth: top.width * top.dpr,
     viewHeight: top.height * top.dpr,
   })
   webContents.setZoomFactor(newZoom)
-  return { applied: true, mode, zoom, newZoom }
+  return { applied: true, zoom, newZoom }
 }
 
 module.exports = { computeGameZoom, zoomGameTab }

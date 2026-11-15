@@ -41,7 +41,6 @@ import { setTimeout as delay } from 'timers/promises'
 import { debug, error } from 'console'
 
 // for wildcard matching URLs to hide address bar for
-import { isMatch } from 'matcher'
 
 // Updaters
 import './workers/worker-shim'
@@ -188,6 +187,13 @@ if (!configSchema.proxy.mode.options.includes(cfg.proxy.mode)) {
   cfg.proxy.enable = false
 }
 delete cfg.proxy.method
+delete cfg.window.style.theme // themes were dropped for the single mygo look
+// back/forward/reload are always in the tab strip now
+delete cfg.window.view.alwaysShowBack
+delete cfg.window.view.alwaysShowForward
+delete cfg.window.view.alwaysShowReload
+// the address field lives in the active tab now, so there is no address bar to hide per site
+delete cfg.window.view.hideAddressBarSites
 delete cfg.proxy.client.httpsPort
 // show the location actually in use (a choice saved only in this config never took effect)
 cfg.app.data.location = dataLocation
@@ -823,7 +829,6 @@ class Browser extends EventEmitter {
 
     const initialWindow = this.createTabbedWindow({
       initialUrls: [settingsUrl],
-      hideAddressBarFor: [settingsUrl],
     })
 
     // Messages from webui/settings
@@ -872,24 +877,12 @@ class Browser extends EventEmitter {
           }
           this.sendToAllWindows('config-saved', configStore.all)
           break
-        case 'get-should-hide-addressbar':
-          if (data.url === settingsUrl) {
-            result = true
-          } else {
-            const sites = configStore
-              .get('window.view.hideAddressBarSites')
-              .map((site) =>
-                site.replace('{{kc3-extension}}', `chrome-extension://${kc3ExtensionId}`),
-              )
-            result = isMatch(data.url, sites)
-          }
-          break
         case 'clear-cache':
           await this.session.clearCache()
           console.log('Cache cleared.')
           break
         case 'start-find-in-page':
-          this.startFindInPage(data.tabId, data.searchInput)
+          this.startFindInPage(data.tabId, data.searchInput, data.forward)
           break
         case 'close-find-in-page':
           this.setFindInPageVisible(data.tabId, false)
@@ -917,11 +910,7 @@ class Browser extends EventEmitter {
           break
         case 'fit-game-to-window': {
           const fitTab = this.windows.find((w) => w.window.id === meta.windowId)?.tabs.selected
-          if (fitTab)
-            console.log(
-              'Game zoom:',
-              await zoomGameTab(fitTab.webContents, data?.mode === 'pixel' ? 'pixel' : 'fit'),
-            )
+          if (fitTab) console.log('Game zoom:', await zoomGameTab(fitTab.webContents))
           break
         }
         case 'webui-display-mode-changed': {
@@ -1076,6 +1065,8 @@ class Browser extends EventEmitter {
         height: windowConfig.state?.height || configSchema.window.state.height.default,
         frame: false,
         titleBarStyle: 'hidden',
+        // centred on the 40px tab strip (webui.css #tabstrip)
+        trafficLightPosition: { x: 14, y: 13 },
         // remove the min/max/close buttons so we can theme them
         /*titleBarOverlay: {
           height: 31,
@@ -1112,9 +1103,20 @@ class Browser extends EventEmitter {
     })
     const onInput = (event, input) => this.handleShortcut(newTabbedWindow, event, input)
     newTabbedWindow.webContents.on('before-input-event', onInput)
+    // a click released in a page, its DevTools or the find bar ends address editing in the webui
+    const endAddressEditingOnClick = (webContents) =>
+      webContents.on('before-mouse-event', (event, mouse) => {
+        if (mouse.type === 'mouseUp' && this.windows.includes(newTabbedWindow))
+          this.sendToWindow(newTabbedWindow.id, 'webui-stop-editing-address')
+      })
     newTabbedWindow.tabs.on('tab-created', (tab) => {
       tab.webContents.on('before-input-event', onInput)
       tab.searchView.webContents.on('before-input-event', onInput)
+      endAddressEditingOnClick(tab.webContents)
+      endAddressEditingOnClick(tab.searchView.webContents)
+      tab.webContents.on('devtools-opened', () =>
+        endAddressEditingOnClick(tab.webContents.devToolsWebContents),
+      )
     })
     newTabbedWindow.tabs.on('tab-destroyed', (tab, url) => {
       if (!url) return
@@ -1150,7 +1152,6 @@ class Browser extends EventEmitter {
     //console.log('>> main.createInitialWindow()')
     this.createTabbedWindow({
       initialUrls: [settingsUrl],
-      hideAddressBarFor: [settingsUrl],
     })
   }
 
@@ -1628,12 +1629,12 @@ class Browser extends EventEmitter {
         this.setFindInPageVisible(tab.id, true)
         break
       case 'Escape':
+        // only while the find bar is open; otherwise pages and the address field need Escape
+        if (!tab.searchVisible) return
         this.setFindInPageVisible(tab.id, false)
         break
-      case 'Alt+A':
-        this.toggleAddressBar(tab.id)
-        break
       case 'Alt+D':
+      case 'CmdOrCtrl+L':
         this.focusAddressBar(tab.id)
         break
       case 'CmdOrCtrl+Tab':
@@ -1673,11 +1674,6 @@ class Browser extends EventEmitter {
     //this.removeWindow(parentWin.window)
   }
 
-  toggleAddressBar(tabId) {
-    const parentWin = this.windows.find((w) => w.tabs.tabList.some((t) => t.id == tabId))
-    this.sendToWindow(parentWin.id, 'webui-toggle-addressbar')
-  }
-
   focusAddressBar(tabId) {
     const parentWin = this.windows.find((w) => w.tabs.tabList.some((t) => t.id == tabId))
     const tab = parentWin.tabs.tabList.find((t) => t.id == tabId)
@@ -1709,11 +1705,11 @@ class Browser extends EventEmitter {
 
     tab.setFindInPageVisible(visible)
   }
-  startFindInPage(tabId, searchInput) {
+  startFindInPage(tabId, searchInput, forward) {
     const parentWin = this.windows.find((w) => w.tabs.tabList.some((t) => t.id == tabId))
     const tab = parentWin.tabs.tabList.find((t) => t.id == tabId)
 
-    tab.findInPage(searchInput)
+    tab.findInPage(searchInput, forward)
   }
 
   getKc3Path() {

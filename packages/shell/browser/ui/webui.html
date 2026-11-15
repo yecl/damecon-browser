@@ -6,45 +6,50 @@
     <script type="text/javascript" src="assets/js/jquery-3.3.1.min.js"></script>
     <script type="text/javascript" src="assets/js/knockout-3.5.1.js"></script>
     <script type="text/javascript" src="assets/js/knockout-i18n.js"></script>
-    <link rel="stylesheet" href="assets/css/all.min.css" />
     <link rel="stylesheet" href="webui.css" />
   </head>
   <body>
     <!-- ko if: config() && windowId() > 0 -->
-    <div id="root" data-bind="attr: { class: `platform-${platform} theme-${config().window.style.theme} brightness-${config().window.style.brightness}` }">
+    <div id="root" data-bind="attr: { class: `platform-${platform}` }">
       <div id="topbar-container" data-bind="rendered: setTopbarObserver.bind($data)">
         <div id="topbar">
           <div id="tabstrip">
+            <!-- always shown, so switching tabs never moves the strip around -->
+            <div class="strip-group nav-controls">
+              <button id="goback" type="button" class="control" title="go back" data-bind="click: browserActionGoBack"><i class="lucide lucide-arrow-left"></i></button>
+              <button id="goforward" type="button" class="control" title="go forward" data-bind="click: browserActionGoForward"><i class="lucide lucide-arrow-right"></i></button>
+              <button id="reload" type="button" class="control" title="reload" data-bind="click: browserActionReload"><i class="lucide lucide-rotate-cw"></i></button>
+            </div>
+            <div class="tab-groove">
             <ul class="tab-list">
               <!-- data-bind="event: { pointerdown: tabPointerDown, pointermove: tabPointerMove, pointerout: tabPointerOut, pointerup: tabPointerUp }" -->
               <!-- ko foreach: tabs() -->
-              <li draggable="true" dropzone="true" data-bind="attr: { class: `tab-container tab-separator-${separator()}${active() ? ' tab-active' : ''}${url==$root.settingsUrl ? ' tab-compact' : ''}`},
+              <li draggable="true" dropzone="true" data-bind="attr: { class: `tab-container tab-separator-${separator()}${active() ? ' tab-active' : ''}${url==$root.settingsUrl ? ' tab-compact' : ''}${$root.editingTabId() === id ? ' tab-editing' : ''}${$root.pressedTabId() === id ? ' tab-pressed segment-dragging' : ''}`},
                 event: { pointerdown: $root.tabPointerDown.bind($root), pointermove: $root.tabPointerMove.bind($root), pointerup: $root.tabPointerUp.bind($root), contextmenu: $root.tabContextMenu.bind($root) }">
                 <div class="tab">
-                  <!-- ko if: !$index() && $root.downloads().length -->
-                  <img class="favicon" src="assets/icons/download_icon_48.png" alt="active downloads" />
-                  <div class="progress-circle">
-                    <div class="progress-content" data-bind="style: { '--pct': $root.downloadPct() }"></div>
-                  </div>
-                  <!-- /ko -->
-                  <!-- ko if: ($index() || !$root.downloads().length) && favIconUrl --> 
+                  <!-- ko if: favIconUrl -->
                   <img class="favicon" data-bind="attr: { src: favIconUrl }" alt="page icon" />
                   <!-- /ko -->
+                  <!-- ko if: $root.editingTabId() === id -->
+                  <input class="tab-address" type="text" spellcheck="false" aria-label="address" data-bind="textInput: urlInput, event: { keydown: $root.browserActionAddressKeyDown.bind($root) }" />
+                  <!-- /ko -->
+                  <!-- ko ifnot: $root.editingTabId() === id -->
                   <span class="title" data-bind="text: title"></span>
+                  <!-- /ko -->
                   <div class="controls">
                     <!-- ko if: mutedInfo && mutedInfo.muted -->
                     <button type="button" class="control audio" title="unmute tab" data-bind="click: $root.toggleTabMuted.bind($root)">
-                      <i class="fa-sharp fa-solid fa-volume-xmark"></i>
+                      <i class="lucide lucide-volume-x"></i>
                     </button>
                     <!-- /ko -->
                     <!-- ko if: audible && !(mutedInfo && mutedInfo.muted) -->
                     <button type="button" class="control audio" title="mute tab" data-bind="click: $root.toggleTabMuted.bind($root)">
-                      <i class="fa-sharp fa-solid fa-volume-high"></i>
+                      <i class="lucide lucide-volume-2"></i>
                     </button>
                     <!-- /ko -->
                     <!-- ko if: url != $root.settingsUrl -->
                     <button type="button" class="control close tab-close" title="close tab" data-bind="click: $root.browserActionCloseTab.bind($root)">
-                      <i class="fa-sharp fa-solid fa-xmark"></i>
+                      <i class="lucide lucide-x"></i>
                     </button>
                     <!-- /ko -->
                   </div>
@@ -52,54 +57,39 @@
               </li>
               <!-- /ko -->
             </ul>
+            </div>
             <button id="createtab" type="button" title="create new tab" data-bind="click: browserActionNewTab">
-              <div style="position: relative; width: 13px; height: 13px;">
-                <div style="background: var(--control-text-color); width: 1px; height: 13px; position: absolute; left: 6px;"></div>
-                <div style="background: var(--control-text-color); width: 13px; height: 1px; position: absolute; top: 6px;"></div>
-              </div>
+              <i class="lucide lucide-plus"></i>
             </button>
             <div class="app-drag app-drag-right"></div>
-            <div class="window-controls">
-              <!-- ko if: !activeTab()?.showAddressBar() -->
+            <div class="strip-group view-controls">
+              <button id="fitgame" type="button" class="control" title="fit game to window" data-bind="click: browserActionFitGame"><i class="lucide lucide-maximize"></i></button>
+            </div>
+            <div class="strip-group app-controls">
               <!-- ko if: config().window.view.alwaysShowExtensions -->
               <browser-action-list id="actions"></browser-action-list>
               <!-- /ko -->
-              <!-- ko if: config().window.view.alwaysShowBack -->
-              <button id="goback" type="button" class="control" title="go back" data-bind="click: browserActionGoBack"><i class="fa-solid fa-arrow-left"></i></button>
-              <!-- /ko -->
-              <!-- ko if: config().window.view.alwaysShowForward -->
-              <button id="goforward" type="button" class="control" title="go forward" data-bind="click: browserActionGoForward"><i class="fa-solid fa-arrow-right"></i></button>
-              <!-- /ko -->
-              <button id="pixelgame" type="button" class="control" title="show game at 1:1 pixels" data-bind="click: browserActionPixelGame"><span class="control-text">1:1</span></button>
-              <button id="fitgame" type="button" class="control" title="fit game to window" data-bind="click: browserActionFitGame"><i class="fa-solid fa-expand"></i></button>
-              <!-- ko if: config().window.view.alwaysShowReload -->
-              <button id="reload" type="button" class="control" title="reload" data-bind="click: browserActionReload"><i class="fa-solid fa-rotate-right"></i></button>
-              <!-- /ko -->
-              <!-- /ko -->
-              <button id="minimize" type="button" class="control" title="minimize" data-bind="click: windowActionMinimize"><i class="fa-regular fa-window-minimize fa-xs"></i></button>
-              <button id="maximize" type="button" class="control" title="maximize" data-bind="click: windowActionMaximize"><i class="fa-regular fa-square-full fa-2xs"></i></button>
-              <button id="close" type="button" class="control" title="close" data-bind="click: windowActionClose"><i class="fa-solid fa-xmark"></i></button>
+              <button id="settings-button" type="button" class="control" title="Damecon settings" data-bind="click: openSettings, css: { 'control-active': activeTab()?.url == settingsUrl }">
+                <img src="assets/icons/damecon_icon_48.png" alt="" />
+                <!-- ko if: downloads().length -->
+                <div class="progress-circle" title="downloads">
+                  <div class="progress-content" data-bind="style: { '--pct': downloadPct() }"></div>
+                </div>
+                <!-- /ko -->
+              </button>
+            </div>
+            <div class="window-controls">
+              <button id="minimize" type="button" class="control" title="minimize" data-bind="click: windowActionMinimize"><i class="lucide lucide-minus"></i></button>
+              <button id="maximize" type="button" class="control" title="maximize" data-bind="click: windowActionMaximize"><i class="lucide lucide-square"></i></button>
+              <button id="close" type="button" class="control" title="close" data-bind="click: windowActionClose"><i class="lucide lucide-x"></i></button>
             </div>
           </div>
-          <!-- ko if: activeTab()?.showAddressBar() -->
-          <div class="toolbar">
-            <div class="page-controls">
-              <button id="goback" type="button" class="control" title="go back" data-bind="click: browserActionGoBack"><i class="fa-solid fa-arrow-left"></i></button>
-              <button id="goforward" type="button" class="control" title="go forward" data-bind="click: browserActionGoForward"><i class="fa-solid fa-arrow-right"></i></button>
-              <button id="reload" type="button" class="control" title="reload" data-bind="click: browserActionReload"><i class="fa-solid fa-rotate-right"></i></button>
-            </div>
-            <div class="input-bar address-bar">
-              <div class="input-backdrop"></div>
-              <input id="addressurl" type="text" spellcheck="false" title="address bar" data-bind="textInput: activeTab().urlInput, event: { keydown: browserActionAddressKeyDown }"/>
-            </div>
-            <browser-action-list id="actions"></browser-action-list>
-          </div>
-          <!-- /ko -->
         </div>
       </div>
       <div id="zoom-presenter" class="hidden"><span>100%</span></div>
     </div>
     <script src="./common.js"></script>
+    <script src="./segmented.js"></script>
     <script src="./webui.js"></script>
     <!-- /ko -->
   </body>

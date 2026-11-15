@@ -46,6 +46,7 @@ export class TabsAPI {
       'did-stop-loading', // status
       'media-started-playing', // audible
       'media-paused', // audible
+      'audio-state-changed', // audible, for any sound source (Web Audio fires no media events)
       'did-start-navigation', // url
       'did-redirect-navigation', // url
       'did-navigate-in-page', // url

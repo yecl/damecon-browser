@@ -20,6 +20,7 @@ class Tab {
     this.searchView = new WebContentsView()
     this.window.contentView.addChildView(this.searchView)
     this.searchView.webContents.loadURL(searchPageUrl)
+    this.searchView.setBorderRadius(12)
     //this.searchView.webContents.openDevTools({ mode: 'detach', activate: true })
 
     this.webContents.on('found-in-page', (event, result) => {
@@ -85,16 +86,19 @@ class Tab {
     const topBarHeight = topBarHeights.get(this.window) ?? 64
 
     if (this.visible) {
-      const searchBaseWidth = 300
+      const searchBaseWidth = 380
       const searchSnapWidth = 500
-      const searchHeight = 36
+      const searchHeight = 44
+      // the find bar floats as a card below the top bar, unless the window is too narrow for it
+      const searchGap = 8
 
       const finalWidth = width - padding * 2
 
       const yOffsetSearchMod =
         this.searchVisible && finalWidth <= searchSnapWidth ? searchHeight : 0
       const yOffset = topBarHeight + yOffsetSearchMod
-      const searchOffset = topBarHeight
+      const snapped = finalWidth <= searchSnapWidth
+      const searchOffset = topBarHeight + (snapped ? 0 : searchGap)
 
       const finalHeight = height - yOffset - padding
 
@@ -123,7 +127,6 @@ class Tab {
       this.view.setBounds({ x: 0, y: 0, width: 0, height: 0 })
       this.searchView.setBounds({ x: 0, y: 0, width: 0, height: 0 })
     }
-    //this.searchView.setBorderRadius(8)
   }
 
   async setFindInPageVisible(visible) {
@@ -154,9 +157,10 @@ class Tab {
     }
   }
 
-  findInPage(searchInput) {
+  findInPage(searchInput, forward = true) {
     this.searchInput = searchInput
-    if (this.searchVisible && searchInput?.length > 0) this.webContents.findInPage(searchInput)
+    if (this.searchVisible && searchInput?.length > 0)
+      this.webContents.findInPage(searchInput, { forward })
     else this.webContents.stopFindInPage('clearSelection')
   }
 

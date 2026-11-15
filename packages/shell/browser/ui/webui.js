@@ -39,6 +39,9 @@ class WebUI {
     this.activeTabId() > 0 ? this.tabs().find((t) => t.id === this.activeTabId()) : null,
   )
 
+  editingTabId = ko.observable(-1)
+  pressedTabId = ko.observable(-1)
+
   downloads = ko.observableArray([])
   downloadPct = ko.observable(0)
   bytesReceived = ko.observable(0)
@@ -56,6 +59,18 @@ class WebUI {
   settingsUrl = 'chrome-extension://' + chrome.runtime.id + '/settings.html'
 
   constructor() {
+    // Address editing ends on Enter or Escape (browserActionAddressKeyDown), on a click outside the
+    // field anywhere in the window, and when another tab becomes active. Clicks here are caught
+    // below; clicks in the page, its DevTools or the find bar are other webContents, so main
+    // reports their release as webui-stop-editing-address.
+    document.addEventListener(
+      'click',
+      (ev) => {
+        if (!ev.target.closest('.tab-editing')) this.stopEditingAddress()
+      },
+      true,
+    )
+    this.activeTabId.subscribe(() => this.stopEditingAddress())
     ipc.on('webui-message', async (ev, msg) => {
       console.log('Received message from main.', msg.type, msg.data)
       if (msg?.type) await this.receiveFromMain(msg)
@@ -97,7 +112,6 @@ class WebUI {
   async initTabs() {
     //console.log('>> initTabs()')
     await this.renderTabs()
-    for (const tab of this.tabs()) await this.updateTabShouldHideAddressBar(tab)
     this.setupBrowserListeners()
   }
 
@@ -128,7 +142,6 @@ class WebUI {
 
   prepareTab(tab, oldTab) {
     if (!tab.separator) tab.separator = ko.observable(oldTab?.separator() ?? 'none')
-    if (!tab.showAddressBar) tab.showAddressBar = ko.observable(oldTab?.showAddressBar() ?? false)
     if (!tab.urlInput)
       tab.urlInput = ko.observable(oldTab?.url != tab.url ? tab.url : oldTab.urlInput())
     if (typeof tab.active !== 'function') tab.active = ko.observable(tab.active)
@@ -148,14 +161,6 @@ class WebUI {
         tab.separator('right')
       else tab.separator('none')
     }
-  }
-
-  async updateTabShouldHideAddressBar(tab) {
-    const shouldHideAddressBar = await this.sendToMain('get-should-hide-addressbar', {
-      url: tab.url,
-    })
-    tab.showAddressBar(!shouldHideAddressBar)
-    await this.sendTopbarSize()
   }
 
   async setTopbarObserver() {
@@ -185,7 +190,6 @@ class WebUI {
     chrome.tabs.onCreated.addListener(async (tab) => {
       if (tab.windowId !== this.windowId()) return
       this.renderTabs()
-      for (const t of this.tabs()) await this.updateTabShouldHideAddressBar(t)
     })
     chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, details) => {
       const tab = this.tabs().find((t) => t.id == tabId)
@@ -206,7 +210,6 @@ class WebUI {
         this.activeTabId(details.id)
       }
       this.updateTabSeparators(this.tabs())
-      if (details.url != tab.url) await this.updateTabShouldHideAddressBar(details)
     })
     chrome.tabs.onRemoved.addListener(async (tabId) => {
       if (!this.tabs().some((t) => t.id == tabId)) return
@@ -283,17 +286,11 @@ class WebUI {
       case 'webui-display-mode':
         await this.sendTopbarSize()
         break
-      case 'webui-toggle-addressbar':
-        //console.log(msg)
-        if (!this.activeTab() || this.activeTab().url == this.settingsUrl) return
-        this.activeTab().showAddressBar(!this.activeTab().showAddressBar())
-        break
       case 'webui-focus-addressbar':
-        const activeTab = this.tabs().find((t) => t.active())
-        if (!activeTab || activeTab.url === this.settingsUrl) return
-
-        // TODO: MVVM-ify this somehow?
-        document.getElementById('addressurl').select()
+        this.startEditingAddress(this.activeTab())
+        break
+      case 'webui-stop-editing-address':
+        this.stopEditingAddress()
         break
       default:
         alert('webui.js received unknown webui-message type from main:\n' + JSON.stringify(msg))
@@ -337,14 +334,19 @@ class WebUI {
   }
 
   tabPointerDown(data, ev) {
+    // the address field inside the active tab takes its own clicks
+    if (ev.target.closest('.tab-address')) return true
+    this.pressedActiveTab = data.active()
+    this.pressX = ev.pageX
     // middle click to close
     if (ev.button == 1 && data.url !== this.settingsUrl) {
       chrome.tabs.remove(data.id)
       return
     }
     if (ev.button != 0) return
-    // if we're interacting with the close button, don't initiate a drag
-    if (this.isCloseButton(ev.target)) return
+    // the tab's own buttons (mute, close) handle their own clicks: no drag, no pointer capture,
+    // which would send their click to the tab instead
+    if (ev.target.closest('.control')) return
 
     if (data.url === this.settingsUrl) {
       chrome.tabs.update(data.id, { active: true })
@@ -356,8 +358,8 @@ class WebUI {
     this.dragTarget = ev.currentTarget
     this.dragButton = ev.button
 
-    this.tabs().forEach((t) => t.active(false))
-    data.active(true)
+    // the tab is only selected on release (tabPointerUp); until then it just looks pressed
+    this.pressedTabId(data.id)
 
     // capture the pointer to ensure we catch all mouse events until we let go
     ev.currentTarget.setPointerCapture(ev.originalEvent.pointerId)
@@ -372,6 +374,7 @@ class WebUI {
     this.buildTabEls(ev)
   }
   tabPointerMove(data, ev) {
+    if (ev.target.closest('.tab-address')) return true
     if (!this.dragTarget) return
 
     const elPos = ev.pageX - this.dragXDiff
@@ -379,6 +382,8 @@ class WebUI {
     const newIndex = this.tabListEls.findIndex(
       (t, i) =>
         t.el != ev.currentTarget &&
+        // the hidden settings tab sits at 0 too and would win the first slot, blocking it
+        t.el.offsetParent !== null &&
         Math.abs(elPos - t.el.offsetLeft) < this.dragTarget.offsetWidth / 3,
     )
     if (newIndex > 0) {
@@ -386,10 +391,23 @@ class WebUI {
       this.startDragElPos = this.tabListEls[this.tabMoveNewIndex].el.offsetLeft
       this.startDragMousePos = ev.pageX
 
+      // the tabs that make way slide to their new places instead of jumping (FLIP); keyed by tab,
+      // since knockout re-creates the moved tab's element
+      const before = new Map(
+        this.tabListEls.map(({ el, tab }) => [tab, el.getBoundingClientRect().left]),
+      )
       const swapTab = this.tabs.splice(this.tabMoveNewIndex, 1)[0]
       this.tabs.splice(this.tabMoveOldIndex, 0, swapTab)
 
       this.buildTabEls(ev)
+      for (const { el, tab } of this.tabListEls) {
+        const dx = before.get(tab) - el.getBoundingClientRect().left
+        if (el === this.dragTarget || !dx) continue
+        el.animate([{ transform: `translateX(${dx}px)` }, { transform: 'none' }], {
+          duration: 200,
+          easing: 'cubic-bezier(0.3, 0.7, 0.4, 1)',
+        })
+      }
     }
     const offsetX = ev.pageX - this.dragXDiff - this.startDragElPos
 
@@ -397,6 +415,8 @@ class WebUI {
     this.dragTarget.style.zIndex = '99'
   }
   tabPointerUp(data, ev) {
+    if (ev.target.closest('.tab-address')) return true
+    this.pressedTabId(-1)
     if (this.dragTarget) {
       if (this.isCloseButton(this.dragTargetActual) && ev.target == this.dragTargetActual) {
         // ignore it and the close button click event will handle it
@@ -405,6 +425,8 @@ class WebUI {
         if (this.tabMoveNewIndex > 0) chrome.tabs.move(data.id, { index: this.tabMoveNewIndex })
         // select the tab if it's not open
         chrome.tabs.update(data.id, { active: true })
+        const clicked = this.tabMoveNewIndex <= 0 && Math.abs(ev.pageX - this.pressX) < 4
+        if (clicked && this.pressedActiveTab) this.startEditingAddress(data)
         this.dragTarget.style.left = '0'
         delete this.dragTarget.style.zIndex
         console.log('dragged tab to new position', this.tabMoveNewIndex)
@@ -545,6 +567,14 @@ class WebUI {
   browserActionNewTab() {
     chrome.tabs.create()
   }
+  // The settings page stays a tab, hidden from the strip; the Damecon button brings it up
+  openSettings() {
+    const settings = this.tabs().find((t) => t.url === this.settingsUrl)
+    if (settings) chrome.tabs.update(settings.id, { active: true })
+    else chrome.tabs.create({ url: this.settingsUrl })
+    // the downloads ring has done its job once the downloads list can be seen
+    if (!this.downloads().some((d) => d.state == 'in_progress')) this.downloads([])
+  }
   browserActionGoBack() {
     chrome.tabs.goBack()
   }
@@ -552,10 +582,7 @@ class WebUI {
     chrome.tabs.goForward()
   }
   browserActionFitGame() {
-    this.sendToMain('fit-game-to-window', { mode: 'fit' })
-  }
-  browserActionPixelGame() {
-    this.sendToMain('fit-game-to-window', { mode: 'pixel' })
+    this.sendToMain('fit-game-to-window')
   }
   browserActionReload() {
     chrome.tabs.reload()
@@ -571,9 +598,44 @@ class WebUI {
     this.sendToMain('webui-tab-context-menu', { tabId: tab.id })
     return true // keep the default context menu; main adds the tab items to it
   }
+  // Safari-style: the active tab turns into the address field (click it, Alt+D or Cmd/Ctrl+L)
+  startEditingAddress(tab) {
+    if (!tab || tab.url === this.settingsUrl) return
+    tab.urlInput(tab.url)
+    this.setEditingTab(tab.id)
+    requestAnimationFrame(() => document.querySelector('.tab-address')?.select())
+  }
+  stopEditingAddress() {
+    this.setEditingTab(-1)
+  }
+  // The tab widens between fitting its title and filling the strip, layouts CSS can't interpolate,
+  // so each tab animates from its measured width to its new one (FLIP)
+  setEditingTab(id) {
+    if (this.editingTabId() === id) return
+    const tabs = [...document.querySelectorAll('.tab-list > .tab-container')]
+    const before = tabs.map((el) => el.getBoundingClientRect().width)
+    this.editingTabId(id)
+    // measure every tab before animating any: a running animation resizes its tab and the others
+    const after = tabs.map((el) => el.getBoundingClientRect().width)
+    tabs.forEach((el, i) => {
+      if (Math.abs(after[i] - before[i]) < 1) return
+      el.animate(
+        [
+          { width: `${before[i]}px`, minWidth: 0 },
+          { width: `${after[i]}px`, minWidth: 0 },
+        ],
+        { duration: 280, easing: 'cubic-bezier(0.3, 0.7, 0.4, 1)' },
+      )
+    })
+  }
   browserActionAddressKeyDown(data, event) {
     event = event.originalEvent
+    if (event.code === 'Escape') {
+      this.stopEditingAddress()
+      return false
+    }
     if (!['Enter', 'NumpadEnter'].includes(event.code)) return true
+    this.stopEditingAddress()
     let url = this.activeTab().urlInput()
     if (url.toLowerCase() == this.settingsUrl.toLowerCase()) return
     if (event.ctrlKey) {
@@ -586,10 +648,6 @@ class WebUI {
     }
     chrome.tabs.update({ url })
     return false
-  }
-  browserActionAddressBlur(event) {
-    // TODO: MVVM-ify this somehow?
-    document.getElementById('addressurl').deselect()
   }
 
   async windowActionMinimize() {

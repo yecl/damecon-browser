@@ -17,7 +17,6 @@
   <script type="text/javascript" src="config-utils.js"></script>
   <script type="text/javascript" src="search.js"></script>
 
-  <link rel="stylesheet" href="assets/css/all.min.css" />
   <link rel="stylesheet" href="webui.css" />
   <link rel="stylesheet" href="settings.css" />
 
@@ -25,25 +24,19 @@
 </head>
 <body>
   <!-- ko if: config -->
-  <div id="root" data-bind="attr: { class: `theme-${config().window.style.theme} brightness-${config().window.style.brightness}` }, event: { keydown: rootKeyDown }">
+  <div id="root" data-bind="event: { keydown: rootKeyDown }">
     <div class="toolbar search-bar">
-      <div>
-        <label for="search-input">Find:</label>
-      </div>
+      <label for="search-input" class="find-icon" title="find in page"><i class="lucide lucide-search"></i></label>
       <div class="find-bar input-bar">
-        <div class="input-backdrop"></div>
-        <input id="search-input" type="text" placeholder="find in page" data-bind="value: searchInput, valueUpdate: 'afterkeydown', event: { keydown: onKeyDown }"/>
+        <input id="search-input" type="text" placeholder="Find in page" data-bind="value: searchInput, valueUpdate: 'afterkeydown', event: { keydown: onKeyDown }"/>
       </div>
       <!-- ko if: searchResult() && searchInput().length > 0 -->
-      <div class="find-results">
-        <label data-bind="text: searchResult().activeMatchOrdinal"></label>
-        <label>/</label>
-        <label data-bind="text: searchResult().matches"></label>
-      </div>
+      <span class="find-results" data-bind="text: `${searchResult().activeMatchOrdinal}/${searchResult().matches}`"></span>
       <!-- /ko -->
-      <div class="close-controls">
-        <button type="button" class="control btn btn-outline-secondary btn-sm" data-bind="click: closeSearch, clickBubble: false" title="close search"><i class="fa-solid fa-xmark"></i></button>
-      </div>
+      <span class="find-divider"></span>
+      <button type="button" class="control" data-bind="click: () => startSearch(false), clickBubble: false" title="previous match (Shift+Enter)"><i class="lucide lucide-chevron-up"></i></button>
+      <button type="button" class="control" data-bind="click: () => startSearch(true), clickBubble: false" title="next match (Enter)"><i class="lucide lucide-chevron-down"></i></button>
+      <button type="button" class="control" data-bind="click: closeSearch, clickBubble: false" title="close search (Esc)"><i class="lucide lucide-x"></i></button>
     </div>
   </div>
   <!-- /ko -->

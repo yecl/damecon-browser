@@ -1,68 +1,98 @@
 #root {
+  min-height: 100%;
   background-color: var(--content-bg-color);
   color: var(--content-text-color);
-  padding: 30px;
+  padding: 64px 32px;
+  font-size: 14px;
 }
 
 .content {
   display: flex;
   flex-direction: column;
   align-items: center;
-  align-content: center;
-  justify-content: center;
 }
 
 .header {
   display: flex;
   flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 40px;
 }
 
 .header .icon {
   width: 48px;
   height: 48px;
   background-image: url('assets/icons/damecon_icon_48.png');
-  margin-bottom: 30px;
-}
-
-.header .title {
-  margin-left: 10px;
 }
 
 .header .title h2 {
   margin: 0;
   padding: 0;
-  font-size: 2rem;
-  line-height: 1.3;
+  font-size: 40px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1;
 }
 
 .links {
-  display: flex;
-  flex-direction: row;
-  max-width: 850px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  max-width: 880px;
   width: 100%;
+  align-items: start;
 }
 
 .col {
-  flex: 0 1 auto;
   display: flex;
   flex-direction: column;
+  gap: 12px;
+  padding: 0;
 }
 
 .col > div {
-  background-color: var(--content-fg-color);
-  border-radius: 4px;
-  margin-bottom: 4px;
-  padding: 10px;
+  background-color: var(--card-bg);
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  padding: 16px 18px;
+  transition: border-color 0.15s;
+}
+
+.col > div:hover {
+  border-color: color-mix(in srgb, var(--content-text-color) 22%, transparent);
 }
 
 .col h6 {
   margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--content-text-color);
 }
 
 .col ul {
-  margin-top: 8px;
-  margin-left: 8px;
+  margin: 10px 0 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 6px;
+  color: var(--control-text-color);
+}
+
+#root a,
+#root a:visited {
+  color: var(--content-text-color);
+  text-decoration: underline;
+  text-decoration-color: var(--hairline);
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.15s;
+}
+
+#root a:hover {
+  text-decoration-color: var(--content-text-color);
+}
+
+@media (max-width: 640px) {
+  .links {
+    grid-template-columns: 1fr;
+  }
 }

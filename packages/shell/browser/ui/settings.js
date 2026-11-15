@@ -1,7 +1,4 @@
 class Settings {
-  theme = ko.observable('andra')
-  brightness = ko.observable('system')
-
   configPages = [
     {
       id: 0,
@@ -44,15 +41,6 @@ class Settings {
   settingsInitialized = ko.observable(false)
 
   processes = ko.observableArray([])
-
-  newHideAddressBarSite = ko.observable('')
-  canAddNewHideAddressBarSite = ko.computed(
-    () =>
-      !!this.newHideAddressBarSite() &&
-      (!this.config.window.view.hideAddressBarSites() ||
-        !this.config.window.view.hideAddressBarSites().includes(this.newHideAddressBarSite())),
-    this,
-  )
 
   kc3IsUpdating = ko.observable(false)
   kc3UpdateError = ko.observable('')
@@ -206,10 +194,6 @@ class Settings {
       source: newConfig,
     })
 
-    this.theme(this.config.window.style.theme())
-    this.config.window.style.theme.subscribe((newValue) => this.theme(newValue))
-    this.brightness(this.config.window.style.brightness())
-    this.config.window.style.brightness.subscribe((newValue) => this.brightness(newValue))
     return this.config
   }
 
@@ -306,22 +290,6 @@ class Settings {
 
   async kc3CheckForUpdates() {
     await sendToMain('kc3-doupdate')
-  }
-
-  addNewHideAddressBarSite() {
-    const site = this.newHideAddressBarSite()
-    if (!this.canAddNewHideAddressBarSite()) return
-    this.newHideAddressBarSite('')
-
-    const path = 'window.view.hideAddressBarSites'
-    const item = ko.observable(site)
-    this.setArrayItemSubscriber(item, path)
-
-    this.config.window.view.hideAddressBarSites.push(item)
-  }
-  removeHideAddressBarSite(value) {
-    const actualValue = this.config.window.view.hideAddressBarSites().find((v) => v() === value)
-    this.config.window.view.hideAddressBarSites.remove(actualValue)
   }
 
   addNewProcess(data) {
@@ -532,17 +500,6 @@ class Settings {
     this.canUpdateKc3(!this.kc3IsUpdating() && !!this.config?.kc3kai?.update.channel())
   }
 
-  compareVersions(a, b) {
-    const pa = a.split('.').map(Number)
-    const pb = b.split('.').map(Number)
-    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-      const na = pa[i] || 0
-      const nb = pb[i] || 0
-      if (na !== nb) return na > nb ? 1 : -1
-    }
-    return 0
-  }
-
   constructor() {
     this.init()
   }
@@ -558,17 +515,6 @@ class Settings {
     await this.prepConfigProperties()
     console.log('done prepping config', this.config)
     this.settingsInitialized(true)
-
-    const cfgVer = this.config.version()
-    if (!cfgVer || this.compareVersions(cfgVer, '0.10.0') < 0) {
-      console.log('Adding new game page URL')
-      const newGamePageUrl = 'https://play.games.dmm.com/game/kancolle'
-      const sites = vm.config.window.view.hideAddressBarSites()
-      if (!sites.includes(newGamePageUrl)) {
-        this.newHideAddressBarSite(newGamePageUrl)
-        this.addNewHideAddressBarSite()
-      }
-    }
 
     const downloads = await chrome.downloads.search({})
     downloads.forEach((d) => this.downloads.push(this.prepDownload(d)))

@@ -14,10 +14,13 @@
   <script type="text/javascript" src="assets/js/knockout-i18n.js"></script>
 
   <script type="text/javascript" src="common.js"></script>
+  <script type="text/javascript" src="segmented.js"></script>
   <script type="text/javascript" src="config-utils.js"></script>
   <script type="text/javascript" src="settings.js"></script>
 
   <link rel="stylesheet" href="assets/css/bootstrap.min.css" />
+  <!-- local icon font, so icons show even when the Font Awesome kit can't be reached -->
+  <link rel="stylesheet" href="assets/css/all.min.css" />
   <link rel="stylesheet" href="webui.css" />
   <link rel="stylesheet" href="settings.css" />
 
@@ -25,7 +28,7 @@
 </head>
 
 <body>
-  <div id="root" data-bind="attr: { class: `theme-${theme()} brightness-${brightness()}` }">
+  <div id="root">
     <!-- ko if: settingsInitialized -->
     <div id="settings">
       <div id="settings-menu">
@@ -103,10 +106,6 @@
       <h5>Appearance</h5>
       <div class="settings-group">
         <div class="dm-field">
-          <label for="windowstyletheme">Theme</label>
-          <select id="windowstyletheme" class="form-control" data-bind="options: configSchema.window.style.theme.options, value: config.window.style.theme"></select>
-        </div>
-        <div class="dm-field">
           <label>Brightness</label>
           <div class="btn-group btn-group-sm" role="group">
             <button type="button" data-bind="attr: { class: seg(config.window.style.brightness, 'system') }, click: () => config.window.style.brightness('system')"><i class="fa-solid fa-circle-half-stroke"></i> System</button>
@@ -116,28 +115,13 @@
         </div>
       </div>
 
-      <h5>Address bar</h5>
+      <h5>Tab bar</h5>
       <div class="settings-group">
-        <p class="small text-muted">Hide the address bar on these sites. Wildcards are allowed; Alt+A toggles it anyway.</p>
-        <div class="form-items-scroller">
-          <!-- ko foreach: config.window.view.hideAddressBarSites -->
-          <div class="dm-address mb-1">
-            <input type="text" class="form-control" aria-label="Site" data-bind="value: $rawData" placeholder="e.g. https://tsunkit.net/*">
-            <button type="button" class="btn btn-outline-danger" data-bind="click: () => $parent.removeHideAddressBarSite($data)" title="remove this entry"><i class="fa-sharp fa-solid fa-xmark"></i></button>
-          </div>
-          <!-- /ko -->
-        </div>
-        <div class="dm-address mt-2">
-          <input id="new-hide-adressbar-site-input" type="text" class="form-control" aria-label="Add site" data-bind="value: newHideAddressBarSite, valueUpdate: 'afterkeydown'" placeholder="Add a site, e.g. https://tsunkit.net/*">
-          <button type="button" class="btn btn-primary" data-bind="click: addNewHideAddressBarSite, enable: canAddNewHideAddressBarSite" title="add a site to hide the address bar for"><i class="fa-sharp fa-solid fa-plus"></i> Add</button>
-        </div>
-        <label class="small text-muted mt-3 mb-1">Buttons to keep in the tab bar while it's hidden</label>
-        <div class="dm-chips">
-          <label class="dm-chip"><input type="checkbox" data-bind="checked: config.window.view.alwaysShowExtensions"><span><i class="fa-solid fa-puzzle-piece"></i> Extensions</span></label>
-          <label class="dm-chip"><input type="checkbox" data-bind="checked: config.window.view.alwaysShowBack"><span><i class="fa-solid fa-arrow-left"></i> Back</span></label>
-          <label class="dm-chip"><input type="checkbox" data-bind="checked: config.window.view.alwaysShowForward"><span><i class="fa-solid fa-arrow-right"></i> Forward</span></label>
-          <label class="dm-chip"><input type="checkbox" data-bind="checked: config.window.view.alwaysShowReload"><span><i class="fa-solid fa-rotate-right"></i> Reload</span></label>
-        </div>
+        <label class="dm-switch mb-0">
+          <input type="checkbox" data-bind="checked: config.window.view.alwaysShowExtensions">
+          <span class="slider"></span>
+          <span>Show the KC3Kai button in the tab bar</span>
+        </label>
       </div>
       <!-- /ko -->
 

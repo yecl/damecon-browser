@@ -39,6 +39,7 @@ class Tabs extends EventEmitter {
     //console.log('>> tabs.create()', webContentsViewOptions?.initialUrl)
     const tab = new Tab(this.window, webContentsViewOptions, this.searchPageUrl)
     this.tabList.push(tab)
+    if (this.headerHeight) tab.updateLayout(this.headerHeight)
     if (!this.selected) this.selected = tab
 
     //tab.show() // must be attached to window
@@ -121,6 +122,8 @@ class Tabs extends EventEmitter {
   }
 
   updateLayout(headerHeight) {
+    // the webui can report its height before any tab exists; tabs created later still need it
+    if (headerHeight > 0) this.headerHeight = headerHeight
     this.tabList.forEach((tab) => {
       tab.updateLayout(headerHeight)
     })
