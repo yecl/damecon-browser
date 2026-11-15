@@ -61,6 +61,8 @@ class Tabs extends EventEmitter {
       return
     }
     const tab = this.tabList[tabIndex]
+    // read before destroy, which drops the webContents
+    const url = tab.webContents?.getURL()
     this.tabList.splice(tabIndex, 1)
     tab.destroy()
     if (this.selected === tab) {
@@ -68,7 +70,7 @@ class Tabs extends EventEmitter {
       const nextTab = this.tabList[tabIndex] || this.tabList[tabIndex - 1]
       if (nextTab) this.select(nextTab.id)
     }
-    this.emit('tab-destroyed', tab)
+    this.emit('tab-destroyed', tab, url)
     if (this.tabList.length === 0) {
       this.destroy()
     }

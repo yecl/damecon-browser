@@ -1,6 +1,6 @@
 import { injectBrowserAction } from 'electron-chrome-extensions/browser-action'
 import { injectIpc } from './preload-ipc.js'
-import { contextBridge } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron'
 
 console.log('Trying to inject into', location.pathname)
 // Inject <browser-action-list> element into WebUI
@@ -16,3 +16,13 @@ if (location.protocol === 'chrome-extension:' && localPages.includes(location.pa
   injectBrowserAction()
   injectIpc()
 }
+
+// Mouse side buttons go back/forward like in Chrome; Electron leaves them to the page
+addEventListener(
+  'mouseup',
+  (e) => {
+    if (e.button === 3 || e.button === 4)
+      ipcRenderer.send('mouse-navigate', e.button === 3 ? -1 : 1)
+  },
+  true,
+)

@@ -287,6 +287,25 @@ let newTabUrl
 let searchUrl
 let settingsUrl
 let confirmCloseUrls = []
+
+// Harmless for any page, and Chrome doesn't ask for them either
+const SILENT_PERMISSIONS = [
+  'fullscreen',
+  'pointerLock',
+  'keyboardLock',
+  'clipboard-sanitized-write',
+  'mediaKeySystem',
+]
+// Extensions (KC3, the webui) declare their permissions in their manifest
+const isTrustedPermission = (origin, permission) =>
+  origin.startsWith('chrome-extension://') || SILENT_PERMISSIONS.includes(permission)
+const originOf = (url) => {
+  try {
+    return new URL(url).origin
+  } catch {
+    return null
+  }
+}
 const manifestExists = async (dirPath) => {
   if (!dirPath) return false
   const manifestPath = path.join(dirPath, 'manifest.json')
@@ -445,6 +464,9 @@ class Browser extends EventEmitter {
   kc3IsUpdating = false
   isProxyEnabled = false
   session = null
+  closedTabUrls = []
+  // `${origin} ${permission}` -> Promise<boolean> while asking, then boolean; kept until quit
+  permissionDecisions = new Map()
 
   urls = {
     newtab: 'about:blank',
@@ -609,6 +631,23 @@ class Browser extends EventEmitter {
     this.session.setCertificateVerifyProc((request, callback) => {
       const viaKccp = configStore.get('proxy.kccp.enable')
       callback(viaKccp && KC_GAME_HOST.test(request.hostname) ? 0 : -3)
+    })
+
+    // Electron grants every permission unless told otherwise; ask like Chrome does instead
+    this.session.setPermissionRequestHandler(async (webContents, permission, callback, details) => {
+      callback(await this.askPermission(permission, details.requestingUrl || webContents.getURL()))
+    })
+    this.session.setPermissionCheckHandler((webContents, permission, requestingOrigin) => {
+      const origin = originOf(requestingOrigin)
+      if (!origin) return false
+      if (isTrustedPermission(origin, permission)) return true
+      return this.permissionDecisions.get(`${origin} ${permission}`) === true
+    })
+    ipcMain.on('mouse-navigate', (event, offset) => {
+      const tab = this.windows
+        .flatMap((w) => w.tabs.tabList)
+        .find((t) => t.webContents === event.sender)
+      if (tab && (offset === -1 || offset === 1)) this.navigateTab(tab.webContents, offset)
     })
 
     this.session.registerPreloadScript({
@@ -1077,6 +1116,11 @@ class Browser extends EventEmitter {
       tab.webContents.on('before-input-event', onInput)
       tab.searchView.webContents.on('before-input-event', onInput)
     })
+    newTabbedWindow.tabs.on('tab-destroyed', (tab, url) => {
+      if (!url) return
+      this.closedTabUrls.push(url)
+      if (this.closedTabUrls.length > 25) this.closedTabUrls.shift()
+    })
     newTabbedWindow.window.on('resize', () => {
       // WebContentsView has no setAutoResize
       newTabbedWindow.tabs.updateLayout()
@@ -1489,6 +1533,47 @@ class Browser extends EventEmitter {
     )
   }
 
+  async askPermission(permission, url) {
+    const origin = originOf(url)
+    if (!origin) return false
+    if (isTrustedPermission(origin, permission)) return true
+    const key = `${origin} ${permission}`
+    if (!this.permissionDecisions.has(key)) {
+      const parent = BrowserWindow.getFocusedWindow()
+      const options = {
+        type: 'question',
+        buttons: ['Block', 'Allow'],
+        defaultId: 0,
+        cancelId: 0,
+        title: 'Permission request',
+        message: `${origin} wants to use: ${permission}`,
+      }
+      const asking = (
+        parent ? dialog.showMessageBox(parent, options) : dialog.showMessageBox(options)
+      ).then(({ response }) => response === 1)
+      this.permissionDecisions.set(key, asking)
+      this.permissionDecisions.set(key, await asking)
+    }
+    return await this.permissionDecisions.get(key)
+  }
+
+  // Back/forward from shortcuts and mouse side buttons; leaving the game page asks like closing it does
+  navigateTab(webContents, offset) {
+    const history = webContents.navigationHistory
+    if (offset < 0 ? !history.canGoBack() : !history.canGoForward()) return
+    if (confirmCloseUrls.includes(webContents.mainFrame.url) && !this.checkConfirmClose()) return
+    if (offset < 0) history.goBack()
+    else history.goForward()
+  }
+
+  // shortcut: reopens the URL only, not the tab's back/forward history
+  reopenClosedTab(win) {
+    const url = this.closedTabUrls.pop()
+    if (!url) return
+    const tab = win.tabs.create({ initialUrl: url })
+    win.tabs.select(tab.id)
+  }
+
   checkConfirmClose() {
     if (!configStore.get('window.behavior.confirmCloseGamePage')) return true
     const choice = dialog.showMessageBoxSync({
@@ -1553,6 +1638,15 @@ class Browser extends EventEmitter {
         break
       case 'CmdOrCtrl+Tab':
         this.nextTab(tab.id)
+        break
+      case isMac ? 'CmdOrCtrl+BracketLeft' : 'Alt+ArrowLeft':
+        this.navigateTab(tab.webContents, -1)
+        break
+      case isMac ? 'CmdOrCtrl+BracketRight' : 'Alt+ArrowRight':
+        this.navigateTab(tab.webContents, 1)
+        break
+      case 'CmdOrCtrl+Shift+T':
+        this.reopenClosedTab(win)
         break
       case 'CmdOrCtrl+Shift+Tab':
         this.prevTab(tab.id)
