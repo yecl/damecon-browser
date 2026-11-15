@@ -460,14 +460,8 @@ class Browser extends EventEmitter {
 
     app.whenReady().then(this.init.bind(this))
 
-    // Our window 'close' handler always prevents the close, which cancels a quit in progress
-    // once more than one window is open, so finish the quit here.
-    app.on('before-quit', () => (this.quitting = true))
-    app.on('window-all-closed', () => {
-      if (process.platform !== 'darwin' || this.quitting) {
-        this.destroy()
-      }
-    })
+    // Quit when the last window closes on every platform, including macOS (removes the Dock icon).
+    app.on('window-all-closed', () => this.destroy())
     app.on('second-instance', () => {
       console.log(
         'Tried to open a second instance. Opening a new window in existing instance instead.',
@@ -478,12 +472,6 @@ class Browser extends EventEmitter {
       if (mainWindow.isMinimized()) mainWindow.restore()
       mainWindow.show()
       */
-    })
-
-    app.on('activate', () => {
-      // On macOS it's common to re-create a window in the app when the
-      // dock icon is clicked and there are no other windows open.
-      if (BrowserWindow.getAllWindows().length === 0) this.createInitialWindow()
     })
 
     app.on('web-contents-created', this.onWebContentsCreated.bind(this))
@@ -1077,10 +1065,7 @@ class Browser extends EventEmitter {
       )
       if (confirmTab) {
         const leave = this.checkConfirmClose()
-        if (!leave) {
-          this.quitting = false
-          return
-        }
+        if (!leave) return
       }
 
       this.windows.splice(idx, 1)
