@@ -19,6 +19,7 @@ import { SocksProxyAgent } from 'socks-proxy-agent'
 import * as builtinKccp from './kccp'
 import { zoomGameTab } from './game-zoom'
 import { pinKc3Id } from './kc3-id'
+import { createExtensionManager } from './extension-manager'
 
 const defaultAgents = { http: http.globalAgent, https: https.globalAgent }
 
@@ -31,7 +32,7 @@ import { configSchema, updateConfigDefaults, populateConfigDefaults } from './ui
 
 // These two break if using import syntax...?
 const { ElectronChromeExtensions } = require('electron-chrome-extensions')
-const { installChromeWebStore, loadAllExtensions } = require('electron-chrome-web-store')
+const { installChromeWebStore } = require('electron-chrome-web-store')
 
 import { buildChromeContextMenu } from 'electron-chrome-context-menu'
 import setupMenu from './menu'
@@ -291,6 +292,7 @@ let kc3StartPageUrl
 let DMMPageUrl
 let newTabUrl
 let searchUrl
+let errorUrl
 let settingsUrl
 let confirmCloseUrls = []
 
@@ -753,8 +755,18 @@ class Browser extends EventEmitter {
     // Wait for web store extensions to finish loading as they may change the
     // newtab URL.
     console.log('Initializing webstore system.')
+    // the extension manager loads web store extensions itself, to skip disabled ones
+    const storeExtensionsPath = path.join(app.getPath('userData'), 'Extensions')
+    this.extensionManager = createExtensionManager({
+      session: this.session,
+      roots: { store: storeExtensionsPath, local: PATHS.LOCAL_EXTENSIONS },
+      dataPath,
+      managed: () => [webuiExtensionId, kc3ExtensionId],
+    })
     await installChromeWebStore({
       session: this.session,
+      extensionsPath: storeExtensionsPath,
+      loadExtensions: false,
       async beforeInstall(details) {
         if (!details.browserWindow || details.browserWindow.isDestroyed()) return
 
@@ -777,13 +789,12 @@ class Browser extends EventEmitter {
       },
     })
 
+    console.log('Loading extensions')
+    await this.extensionManager.load('store')
     //if (!app.isPackaged) {
     if (fsSync.existsSync(PATHS.LOCAL_EXTENSIONS)) {
-      console.log('Loading extensions')
-      await loadAllExtensions(this.session, PATHS.LOCAL_EXTENSIONS, {
-        allowUnpacked: true,
-        filterRegex: /^(?!kc3kai).*(?:[/\\]src)?$/,
-        filterCallback: (ext) => {
+      await this.extensionManager.load('local', {
+        accept: (ext) => {
           console.log(`Checking extension ${ext.manifest.name}`)
           if (ext.manifest.name === 'uBlock Origin') {
             const version = ext.manifest.version.split('.').map((i) => parseInt(i))
@@ -802,18 +813,6 @@ class Browser extends EventEmitter {
       })
     }
 
-    console.log('Starting extension workers.')
-    await Promise.all(
-      this.session.extensions.getAllExtensions().map(async (extension) => {
-        const manifest = extension.manifest
-        if (manifest.manifest_version === 3 && manifest?.background?.service_worker) {
-          await this.session.serviceWorkers.startWorkerForScope(extension.url).catch((error) => {
-            console.error(error)
-          })
-        }
-      }),
-    )
-
     // theme handling
     const bright = configStore.get('window.style.brightness') || 'system'
     nativeTheme.themeSource = bright
@@ -826,6 +825,7 @@ class Browser extends EventEmitter {
     newTabUrl = webuiBase + '/new-tab.html'
     settingsUrl = webuiBase + '/settings.html'
     searchUrl = webuiBase + '/search.html'
+    errorUrl = webuiBase + '/error.html'
 
     const initialWindow = this.createTabbedWindow({
       initialUrls: [settingsUrl],
@@ -895,6 +895,13 @@ class Browser extends EventEmitter {
           break
         case 'kccp':
           result = await builtinKccp.action(data.action, data)
+          break
+        case 'extensions':
+          result = await this.extensionManager.action(
+            data.action,
+            data,
+            BrowserWindow.getFocusedWindow(),
+          )
           break
         case 'kc3-select-custom-location':
         case 'select-custom-data-location':
@@ -1117,6 +1124,7 @@ class Browser extends EventEmitter {
       tab.webContents.on('devtools-opened', () =>
         endAddressEditingOnClick(tab.webContents.devToolsWebContents),
       )
+      this.handlePageFailures(tab, newTabbedWindow.window)
     })
     newTabbedWindow.tabs.on('tab-destroyed', (tab, url) => {
       if (!url) return
@@ -1558,6 +1566,42 @@ class Browser extends EventEmitter {
     return await this.permissionDecisions.get(key)
   }
 
+  // A page that fails to load or whose renderer crashes gets an error page with Reload instead of
+  // staying blank; a hung one asks whether to wait or reload, as Chrome does
+  handlePageFailures(tab, window) {
+    const wc = tab.webContents
+    const showError = (kind, url, detail) =>
+      wc.loadURL(`${errorUrl}?${new URLSearchParams({ kind, url, detail })}`)
+    wc.on('did-fail-load', (event, code, description, url, isMainFrame) => {
+      // -3 (ERR_ABORTED) is a navigation stopped or replaced by another, not a failure
+      if (isMainFrame && code !== -3) showError('load', url, `${description} (${code})`)
+    })
+    wc.on('render-process-gone', (event, { reason }) => {
+      if (tab.reloadingHungPage) tab.reloadingHungPage = false
+      else if (reason !== 'clean-exit') showError('crash', wc.getURL(), reason)
+    })
+    wc.on('unresponsive', async () => {
+      const recovered = new AbortController()
+      const onResponsive = () => recovered.abort()
+      wc.once('responsive', onResponsive)
+      const { response } = await dialog.showMessageBox(window, {
+        type: 'warning',
+        message: "This page isn't responding",
+        detail: wc.getURL(),
+        buttons: ['Wait', 'Reload'],
+        defaultId: 0,
+        cancelId: 0,
+        signal: recovered.signal,
+      })
+      if (wc.isDestroyed()) return
+      wc.off('responsive', onResponsive)
+      if (response !== 1) return
+      tab.reloadingHungPage = true
+      wc.forcefullyCrashRenderer()
+      wc.reload()
+    })
+  }
+
   // Back/forward from shortcuts and mouse side buttons; leaving the game page asks like closing it does
   navigateTab(webContents, offset) {
     const history = webContents.navigationHistory
@@ -1605,6 +1649,13 @@ class Browser extends EventEmitter {
     ]
       .filter(Boolean)
       .join('+')
+    // Cmd/Ctrl+1–8 select that tab, 9 the last, as in Chrome; the webui knows the strip's order
+    const tabNumber = accelerator.match(/^CmdOrCtrl\+Digit([1-9])$/)
+    if (tabNumber) {
+      this.sendToWindow(win.id, 'webui-select-tab-number', { number: Number(tabNumber[1]) })
+      event.preventDefault()
+      return
+    }
     switch (accelerator) {
       case 'CmdOrCtrl+T':
         win.tabs.create()

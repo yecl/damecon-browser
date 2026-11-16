@@ -21,6 +21,11 @@ class Settings {
       img: 'assets/icons/kccp.png',
     },
     {
+      id: 5,
+      name: 'Extensions',
+      faIcon: 'fa-solid fa-puzzle-piece',
+    },
+    {
       id: 3,
       name: 'Downloads',
       img: 'assets/icons/download_icon_48.png',
@@ -120,6 +125,28 @@ class Settings {
 
   kccpSetOption = (key, event) => this.kccpCall('set-option', { key, value: event.target.checked })
 
+  // Extensions page (extension-manager.js): every call returns, or is followed by, the fresh list
+  extensions = ko.observableArray([])
+  extensionsError = ko.observable('')
+  extensionsCall = async (action, data) => {
+    this.extensionsError('')
+    try {
+      const result = await sendToMain('extensions', { ...data, action })
+      this.extensions(
+        action === 'list' ? result : await sendToMain('extensions', { action: 'list' }),
+      )
+    } catch (error) {
+      this.extensionsError(
+        String(error.message || error).replace(
+          /^Error invoking remote method[^:]*: (Error: )?/,
+          '',
+        ),
+      )
+    }
+  }
+  extensionSetEnabled = (ext, event) =>
+    this.extensionsCall('set-enabled', { key: ext.key, enabled: event.target.checked })
+
   kccpAddGitMod = async (url) => {
     await this.kccpCall('add-git-mod', { url: url || this.kccpGitUrl() })
     if (!this.kccpError()) this.kccpGitUrl('')
@@ -161,6 +188,7 @@ class Settings {
 
   selectConfigPage(item) {
     this.selectedConfigPage(item.id)
+    if (item.id === 5) this.extensionsCall('list')
   }
 
   async tryInvoke(asyncCallback, name) {

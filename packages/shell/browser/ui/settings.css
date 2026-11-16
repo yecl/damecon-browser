@@ -649,6 +649,37 @@ input.sensitive:focus {
   height: 4px;
   margin-top: 6px;
 }
+/* Extensions page */
+.dm-extension {
+  justify-content: flex-start;
+  gap: 12px;
+}
+.dm-extension.dm-extension-off .dm-extension-icon,
+.dm-extension.dm-extension-off .dm-extension-label {
+  opacity: 0.5;
+}
+.dm-extension-icon {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--control-text-color);
+}
+.dm-extension-label {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.dm-extension-name {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .dm-empty {
   display: flex;
   flex-direction: column;

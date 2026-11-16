@@ -644,6 +644,44 @@
       <!-- /ko -->
     </script>
 
+    <script type="text/html" id="settings-content-5">
+      <h3>Extensions</h3>
+      <p class="text-muted">Installed from the Chrome Web Store, or unpacked in the <code>extensions</code> folder. A disabled extension stays off after a restart.</p>
+      <div class="dm-tools">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: () => extensionsCall('open-folder')"><i class="fa-regular fa-folder-open"></i> Extensions folder</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: () => chrome.tabs.create({ url: 'https://chromewebstore.google.com' })"><i class="fa-solid fa-store"></i> Chrome Web Store</button>
+      </div>
+      <!-- ko if: extensionsError() -->
+      <p class="dm-error" data-bind="text: extensionsError"></p>
+      <!-- /ko -->
+      <div class="settings-group">
+        <!-- ko foreach: extensions -->
+        <div class="dm-row dm-extension" data-bind="css: { 'dm-extension-off': !enabled }">
+          <!-- ko if: icon -->
+          <img class="dm-extension-icon" data-bind="attr: { src: icon }" alt="">
+          <!-- /ko -->
+          <!-- ko ifnot: icon -->
+          <span class="dm-extension-icon"><i class="fa-solid fa-puzzle-piece"></i></span>
+          <!-- /ko -->
+          <span class="dm-extension-label">
+            <span class="dm-extension-name" data-bind="text: name"></span>
+            <span class="small text-muted" data-bind="text: managed ? `${version} · managed on its own page` : `${version} · ${key.startsWith('store:') ? 'Chrome Web Store' : 'unpacked'}`"></span>
+          </span>
+          <!-- ko ifnot: managed -->
+          <label class="dm-switch mb-0" data-bind="attr: { title: enabled ? 'disable' : 'enable' }">
+            <input type="checkbox" data-bind="checked: enabled, event: { change: $parent.extensionSetEnabled }">
+            <span class="slider"></span>
+          </label>
+          <button type="button" class="btn btn-outline-danger btn-sm" data-bind="click: () => $parent.extensionsCall('remove', { key })" title="remove"><i class="fa-regular fa-trash-can"></i></button>
+          <!-- /ko -->
+        </div>
+        <!-- /ko -->
+        <!-- ko if: !extensions().length -->
+        <div class="dm-empty"><i class="fa-solid fa-puzzle-piece"></i><span>No extensions</span></div>
+        <!-- /ko -->
+      </div>
+    </script>
+
     <script type="text/html" id="settings-content-3">
       <h3>Downloads</h3>
       <div class="dm-tools">

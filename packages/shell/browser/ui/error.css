@@ -1,0 +1,58 @@
+#root {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px;
+  text-align: center;
+  background: var(--content-bg-color);
+  color: var(--content-text-color);
+}
+
+#heading {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+#message {
+  margin: 0;
+  font-size: 14px;
+  color: var(--control-text-color);
+}
+
+#detail {
+  margin: 0;
+  max-width: 640px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: var(--control-text-color);
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+#reload {
+  margin-top: 8px;
+  height: 36px;
+  padding: 0 16px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--primary);
+  color: var(--primary-fg);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+#reload:hover {
+  background: color-mix(in srgb, var(--primary) 90%, transparent);
+}
+
+#reload:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--ring) 60%, transparent);
+  outline-offset: 2px;
+}

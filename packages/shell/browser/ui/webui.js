@@ -57,6 +57,7 @@ class WebUI {
 
   platform = navigator.userAgentData.platform.toLowerCase()
   settingsUrl = 'chrome-extension://' + chrome.runtime.id + '/settings.html'
+  errorUrl = 'chrome-extension://' + chrome.runtime.id + '/error.html'
 
   constructor() {
     // Address editing ends on Enter or Escape (browserActionAddressKeyDown), on a click outside the
@@ -289,6 +290,12 @@ class WebUI {
       case 'webui-focus-addressbar':
         this.startEditingAddress(this.activeTab())
         break
+      case 'webui-select-tab-number': {
+        const tabs = this.tabs().filter((t) => t.url !== this.settingsUrl)
+        const tab = msg.data.number === 9 ? tabs.at(-1) : tabs[msg.data.number - 1]
+        if (tab) chrome.tabs.update(tab.id, { active: true })
+        break
+      }
       case 'webui-stop-editing-address':
         this.stopEditingAddress()
         break
@@ -601,7 +608,9 @@ class WebUI {
   // Safari-style: the active tab turns into the address field (click it, Alt+D or Cmd/Ctrl+L)
   startEditingAddress(tab) {
     if (!tab || tab.url === this.settingsUrl) return
-    tab.urlInput(tab.url)
+    // on an error page (main.js showError), edit the address that failed rather than the page's own
+    const failed = tab.url.startsWith(this.errorUrl) && new URL(tab.url).searchParams.get('url')
+    tab.urlInput(failed || tab.url)
     this.setEditingTab(tab.id)
     requestAnimationFrame(() => document.querySelector('.tab-address')?.select())
   }
