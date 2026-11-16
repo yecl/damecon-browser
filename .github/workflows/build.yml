@@ -5,13 +5,15 @@ on:
     branches: [electron25, electron44]
   workflow_dispatch:
 
-jobs:
-  build-macos:
-    runs-on: macos-latest
+# A new push to a branch cancels that branch's previous run, queued or stuck
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
-    strategy:
-      matrix:
-        arch: [x64, arm64]
+jobs:
+  # both architectures on one runner: macOS runners are scarce, and one queues once
+  build-macos:
+    runs-on: macos-15
 
     steps:
       - name: Checkout
@@ -28,16 +30,26 @@ jobs:
       - name: Build packages
         run: yarn build
 
-      - name: Make macOS distributables
+      # each upload follows its own make, in case a make clears the previous output
+      - name: Make arm64 distributables
         working-directory: packages/shell
-        run: npx electron-forge make --arch=${{ matrix.arch }}
+        run: npx electron-forge make --arch=arm64
 
-      - name: Upload artifacts
+      - name: Upload arm64 artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: damecon-macos-${{ matrix.arch }}
-          path: |
-            packages/shell/out/make/**/*.dmg
+          name: damecon-macos-arm64
+          path: packages/shell/out/make/**/*-arm64.dmg
+
+      - name: Make x64 distributables
+        working-directory: packages/shell
+        run: npx electron-forge make --arch=x64
+
+      - name: Upload x64 artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: damecon-macos-x64
+          path: packages/shell/out/make/**/*-x64.dmg
 
   build-windows:
     runs-on: windows-latest
