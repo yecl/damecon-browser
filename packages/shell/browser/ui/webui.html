@@ -24,8 +24,10 @@
             <ul class="tab-list">
               <!-- data-bind="event: { pointerdown: tabPointerDown, pointermove: tabPointerMove, pointerout: tabPointerOut, pointerup: tabPointerUp }" -->
               <!-- ko foreach: tabs() -->
-              <li draggable="true" dropzone="true" data-bind="attr: { class: `tab-container tab-separator-${separator()}${active() ? ' tab-active' : ''}${url==$root.settingsUrl ? ' tab-compact' : ''}${$root.editingTabId() === id ? ' tab-editing' : ''}${$root.pressedTabId() === id ? ' tab-pressed segment-dragging' : ''}`},
+              <li draggable="true" dropzone="true" data-bind="attr: { class: `tab-container tab-separator-${separator()}${active() ? ' tab-active' : ''}${url==$root.settingsUrl ? ' tab-compact' : ''}${$root.editingTabId() === id ? ' tab-editing' : ''}${$root.pressedTabId() === id ? ' tab-pressed' : ''}`},
+                style: { viewTransitionName: 'tab-' + id },
                 event: { pointerdown: $root.tabPointerDown.bind($root), pointermove: $root.tabPointerMove.bind($root), pointerup: $root.tabPointerUp.bind($root), contextmenu: $root.tabContextMenu.bind($root) }">
+                <span class="segment-pill"></span>
                 <div class="tab">
                   <!-- ko if: favIconUrl -->
                   <img class="favicon" data-bind="attr: { src: favIconUrl }" alt="page icon" />
@@ -42,7 +44,7 @@
                       <i class="lucide lucide-volume-x"></i>
                     </button>
                     <!-- /ko -->
-                    <!-- ko if: audible && !(mutedInfo && mutedInfo.muted) -->
+                    <!-- ko if: $root.speakerTabIds().includes(id) && !(mutedInfo && mutedInfo.muted) -->
                     <button type="button" class="control audio" title="mute tab" data-bind="click: $root.toggleTabMuted.bind($root)">
                       <i class="lucide lucide-volume-2"></i>
                     </button>
@@ -89,7 +91,6 @@
       <div id="zoom-presenter" class="hidden"><span>100%</span></div>
     </div>
     <script src="./common.js"></script>
-    <script src="./segmented.js"></script>
     <script src="./webui.js"></script>
     <!-- /ko -->
   </body>

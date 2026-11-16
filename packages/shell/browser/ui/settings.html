@@ -14,7 +14,6 @@
   <script type="text/javascript" src="assets/js/knockout-i18n.js"></script>
 
   <script type="text/javascript" src="common.js"></script>
-  <script type="text/javascript" src="segmented.js"></script>
   <script type="text/javascript" src="config-utils.js"></script>
   <script type="text/javascript" src="settings.js"></script>
 
@@ -52,7 +51,7 @@
           <!-- /ko -->
         </div>
         <div id="version">
-          <span data-bind="text: version"></span>
+          <a href="https://github.com/yecl/damecon-browser" title="Damecon on GitHub" data-bind="text: version, click: () => chrome.tabs.create({ url: 'https://github.com/yecl/damecon-browser' })"></a>
         </div>
       </div>
       <div id="settings-container">
@@ -96,10 +95,10 @@
       <p class="text-muted">Appearance, window behavior and where Damecon keeps its data.</p>
 
       <div class="btn-group btn-group-sm mb-3" role="group">
-        <button type="button" data-bind="attr: { class: seg(appTab, appTabs.window) }, click: () => appTab(appTabs.window)"><i class="fa-regular fa-window-maximize"></i> Window</button>
-        <button type="button" data-bind="attr: { class: seg(appTab, appTabs.kancolle) }, click: () => appTab(appTabs.kancolle)"><i class="fa-solid fa-anchor"></i> KanColle</button>
-        <button type="button" data-bind="attr: { class: seg(appTab, appTabs.application) }, click: () => appTab(appTabs.application)"><i class="fa-solid fa-hard-drive"></i> Data</button>
-        <button type="button" data-bind="attr: { class: seg(appTab, appTabs.advanced) }, click: () => appTab(appTabs.advanced)"><i class="fa-solid fa-sliders"></i> Advanced</button>
+        <button type="button" data-bind="attr: { class: seg(appTab, appTabs.window) }, click: (d, e) => $root.selectSegment(e, () => appTab(appTabs.window))"><span class="segment-pill"></span><i class="fa-regular fa-window-maximize"></i> Window</button>
+        <button type="button" data-bind="attr: { class: seg(appTab, appTabs.kancolle) }, click: (d, e) => $root.selectSegment(e, () => appTab(appTabs.kancolle))"><span class="segment-pill"></span><i class="fa-solid fa-anchor"></i> KanColle</button>
+        <button type="button" data-bind="attr: { class: seg(appTab, appTabs.application) }, click: (d, e) => $root.selectSegment(e, () => appTab(appTabs.application))"><span class="segment-pill"></span><i class="fa-solid fa-hard-drive"></i> Data</button>
+        <button type="button" data-bind="attr: { class: seg(appTab, appTabs.advanced) }, click: (d, e) => $root.selectSegment(e, () => appTab(appTabs.advanced))"><span class="segment-pill"></span><i class="fa-solid fa-sliders"></i> Advanced</button>
       </div>
 
       <!-- ko if: appTab() === appTabs.window -->
@@ -108,9 +107,9 @@
         <div class="dm-field">
           <label>Brightness</label>
           <div class="btn-group btn-group-sm" role="group">
-            <button type="button" data-bind="attr: { class: seg(config.window.style.brightness, 'system') }, click: () => config.window.style.brightness('system')"><i class="fa-solid fa-circle-half-stroke"></i> System</button>
-            <button type="button" data-bind="attr: { class: seg(config.window.style.brightness, 'light') }, click: () => config.window.style.brightness('light')"><i class="fa-regular fa-sun"></i> Light</button>
-            <button type="button" data-bind="attr: { class: seg(config.window.style.brightness, 'dark') }, click: () => config.window.style.brightness('dark')"><i class="fa-regular fa-moon"></i> Dark</button>
+            <button type="button" data-bind="attr: { class: seg(config.window.style.brightness, 'system') }, click: (d, e) => $root.selectSegment(e, () => config.window.style.brightness('system'))"><span class="segment-pill"></span><i class="fa-solid fa-circle-half-stroke"></i> System</button>
+            <button type="button" data-bind="attr: { class: seg(config.window.style.brightness, 'light') }, click: (d, e) => $root.selectSegment(e, () => config.window.style.brightness('light'))"><span class="segment-pill"></span><i class="fa-regular fa-sun"></i> Light</button>
+            <button type="button" data-bind="attr: { class: seg(config.window.style.brightness, 'dark') }, click: (d, e) => $root.selectSegment(e, () => config.window.style.brightness('dark'))"><span class="segment-pill"></span><i class="fa-regular fa-moon"></i> Dark</button>
           </div>
         </div>
       </div>
@@ -141,7 +140,7 @@
           <label>Frame rate</label>
           <div class="btn-group btn-group-sm" role="group">
             <!-- ko foreach: ['60', '120', '144', '165', '240'] -->
-            <button type="button" data-bind="attr: { class: $parent.seg($parent.config.kancolle.fps, $data) }, click: () => $parent.config.kancolle.fps($data), text: $data"></button>
+            <button type="button" data-bind="attr: { class: $parent.seg($parent.config.kancolle.fps, $data) }, click: (d, e) => $root.selectSegment(e, () => $parent.config.kancolle.fps($data))"><span class="segment-pill"></span><span data-bind="text: $data"></span></button>
             <!-- /ko -->
           </div>
         </div>
@@ -153,10 +152,10 @@
       <h5>Data location</h5>
       <div class="settings-group">
         <div class="btn-group btn-group-sm mb-2" role="group">
-          <button type="button" data-bind="attr: { class: seg(config.app.data.location, 'appdata') }, click: () => config.app.data.location('appdata')">App data</button>
-          <button type="button" data-bind="attr: { class: seg(config.app.data.location, 'home') }, click: () => config.app.data.location('home')">Home folder</button>
-          <button type="button" data-bind="attr: { class: seg(config.app.data.location, 'appdir') }, click: () => config.app.data.location('appdir')">Next to the app</button>
-          <button type="button" data-bind="attr: { class: seg(config.app.data.location, 'custom') }, click: () => config.app.data.location('custom')">Custom</button>
+          <button type="button" data-bind="attr: { class: seg(config.app.data.location, 'appdata') }, click: (d, e) => $root.selectSegment(e, () => config.app.data.location('appdata'))"><span class="segment-pill"></span>App data</button>
+          <button type="button" data-bind="attr: { class: seg(config.app.data.location, 'home') }, click: (d, e) => $root.selectSegment(e, () => config.app.data.location('home'))"><span class="segment-pill"></span>Home folder</button>
+          <button type="button" data-bind="attr: { class: seg(config.app.data.location, 'appdir') }, click: (d, e) => $root.selectSegment(e, () => config.app.data.location('appdir'))"><span class="segment-pill"></span>Next to the app</button>
+          <button type="button" data-bind="attr: { class: seg(config.app.data.location, 'custom') }, click: (d, e) => $root.selectSegment(e, () => config.app.data.location('custom'))"><span class="segment-pill"></span>Custom</button>
         </div>
         <!-- ko if: config.app.data.location() != 'custom' -->
         <p class="small mb-2">
@@ -261,9 +260,9 @@
         <div class="dm-field">
           <label>Open game</label>
           <div class="btn-group btn-group-sm" role="group">
-            <button type="button" data-bind="attr: { class: seg(config.kc3kai.startup.gamePage, 'kc3') }, click: () => config.kc3kai.startup.gamePage('kc3')">KC3 start page</button>
-            <button type="button" data-bind="attr: { class: seg(config.kc3kai.startup.gamePage, 'dmm') }, click: () => config.kc3kai.startup.gamePage('dmm')">DMM game page</button>
-            <button type="button" data-bind="attr: { class: seg(config.kc3kai.startup.gamePage, 'none') }, click: () => config.kc3kai.startup.gamePage('none')">Nothing</button>
+            <button type="button" data-bind="attr: { class: seg(config.kc3kai.startup.gamePage, 'kc3') }, click: (d, e) => $root.selectSegment(e, () => config.kc3kai.startup.gamePage('kc3'))"><span class="segment-pill"></span>KC3 start page</button>
+            <button type="button" data-bind="attr: { class: seg(config.kc3kai.startup.gamePage, 'dmm') }, click: (d, e) => $root.selectSegment(e, () => config.kc3kai.startup.gamePage('dmm'))"><span class="segment-pill"></span>DMM game page</button>
+            <button type="button" data-bind="attr: { class: seg(config.kc3kai.startup.gamePage, 'none') }, click: (d, e) => $root.selectSegment(e, () => config.kc3kai.startup.gamePage('none'))"><span class="segment-pill"></span>Nothing</button>
           </div>
         </div>
         <label class="dm-switch">
@@ -299,7 +298,7 @@
           <label>Channel</label>
           <div class="btn-group btn-group-sm" role="group">
             <!-- ko foreach: [['release', 'Release'], ['master', 'Master'], ['develop', 'Develop'], ['custom1', 'Custom 1'], ['custom2', 'Custom 2']] -->
-            <button type="button" data-bind="attr: { class: $root.seg($root.config.kc3kai.update.channel, $data[0]) }, enable: $root.canSetKc3Channel, click: () => $root.config.kc3kai.update.channel($data[0]), text: $data[1]"></button>
+            <button type="button" data-bind="attr: { class: $root.seg($root.config.kc3kai.update.channel, $data[0]) }, enable: $root.canSetKc3Channel, click: (d, e) => $root.selectSegment(e, () => $root.config.kc3kai.update.channel($data[0]))"><span class="segment-pill"></span><span data-bind="text: $data[1]"></span></button>
             <!-- /ko -->
           </div>
         </div>
@@ -309,9 +308,9 @@
         <div class="dm-field">
           <label>Check</label>
           <div class="btn-group btn-group-sm" role="group">
-            <button type="button" data-bind="attr: { class: seg(config.kc3kai.update.schedule, 'startup') }, click: () => config.kc3kai.update.schedule('startup')">Every start</button>
-            <button type="button" data-bind="attr: { class: seg(config.kc3kai.update.schedule, 'daily') }, click: () => config.kc3kai.update.schedule('daily')">Daily</button>
-            <button type="button" data-bind="attr: { class: seg(config.kc3kai.update.schedule, 'weekly') }, click: () => config.kc3kai.update.schedule('weekly')">Weekly</button>
+            <button type="button" data-bind="attr: { class: seg(config.kc3kai.update.schedule, 'startup') }, click: (d, e) => $root.selectSegment(e, () => config.kc3kai.update.schedule('startup'))"><span class="segment-pill"></span>Every start</button>
+            <button type="button" data-bind="attr: { class: seg(config.kc3kai.update.schedule, 'daily') }, click: (d, e) => $root.selectSegment(e, () => config.kc3kai.update.schedule('daily'))"><span class="segment-pill"></span>Daily</button>
+            <button type="button" data-bind="attr: { class: seg(config.kc3kai.update.schedule, 'weekly') }, click: (d, e) => $root.selectSegment(e, () => config.kc3kai.update.schedule('weekly'))"><span class="segment-pill"></span>Weekly</button>
           </div>
         </div>
         <label class="dm-switch">
@@ -396,8 +395,8 @@
         <p class="small text-muted">For networks that need a proxy to reach anything. KC3 updates, the web store and the built-in KCCP use it too.</p>
         <div data-bind="css: { 'dm-disabled': !config.proxy.enable() }">
           <div class="btn-group btn-group-sm mb-3" role="group">
-            <button type="button" data-bind="attr: { class: `btn ${config.proxy.mode() === 'http-proxy' ? 'btn-primary' : 'btn-outline-primary'}` }, click: () => config.proxy.mode('http-proxy')">HTTP</button>
-            <button type="button" data-bind="attr: { class: `btn ${config.proxy.mode() === 'socks5-proxy' ? 'btn-primary' : 'btn-outline-primary'}` }, click: () => config.proxy.mode('socks5-proxy')">SOCKS5</button>
+            <button type="button" data-bind="attr: { class: seg(config.proxy.mode, 'http-proxy') }, click: (d, e) => $root.selectSegment(e, () => config.proxy.mode('http-proxy'))"><span class="segment-pill"></span>HTTP</button>
+            <button type="button" data-bind="attr: { class: seg(config.proxy.mode, 'socks5-proxy') }, click: (d, e) => $root.selectSegment(e, () => config.proxy.mode('socks5-proxy'))"><span class="segment-pill"></span>SOCKS5</button>
           </div>
           <div class="dm-address">
             <input type="text" class="form-control" aria-label="Proxy host" data-bind="value: config.proxy.client.host" placeholder="127.0.0.1">
@@ -439,8 +438,8 @@
       <h5>Connection</h5>
       <div class="settings-group">
         <div class="btn-group btn-group-sm mb-2" role="group">
-          <button type="button" data-bind="attr: { class: `btn ${config.proxy.kccp.mode() === 'internal' ? 'btn-primary' : 'btn-outline-primary'}` }, click: () => config.proxy.kccp.mode('internal')">Built-in</button>
-          <button type="button" data-bind="attr: { class: `btn ${config.proxy.kccp.mode() === 'external' ? 'btn-primary' : 'btn-outline-primary'}` }, click: () => config.proxy.kccp.mode('external')">External</button>
+          <button type="button" data-bind="attr: { class: seg(config.proxy.kccp.mode, 'internal') }, click: (d, e) => $root.selectSegment(e, () => config.proxy.kccp.mode('internal'))"><span class="segment-pill"></span>Built-in</button>
+          <button type="button" data-bind="attr: { class: seg(config.proxy.kccp.mode, 'external') }, click: (d, e) => $root.selectSegment(e, () => config.proxy.kccp.mode('external'))"><span class="segment-pill"></span>External</button>
         </div>
         <p class="small text-muted" data-bind="visible: config.proxy.kccp.mode() === 'internal'">
           Damecon runs KCCP itself. Its downloads from the game servers go through the proxy on the Proxy page, and no
@@ -492,9 +491,9 @@
       </div>
 
       <div class="btn-group btn-group-sm mb-2" role="group">
-        <button type="button" data-bind="attr: { class: `btn ${kccpTab() == kccpTabs.status ? 'btn-primary' : 'btn-outline-primary'}` }, click: () => kccpTab(kccpTabs.status)"><i class="fa-solid fa-box-archive"></i> Cache</button>
-        <button type="button" data-bind="attr: { class: `btn ${kccpTab() == kccpTabs.mods ? 'btn-primary' : 'btn-outline-primary'}` }, click: () => kccpTab(kccpTabs.mods)"><i class="fa-solid fa-palette"></i> Mods <span data-bind="visible: kccp().mods.length, text: `(${kccp().mods.length})`"></span></button>
-        <button type="button" data-bind="attr: { class: `btn ${kccpTab() == kccpTabs.log ? 'btn-primary' : 'btn-outline-primary'}` }, click: () => kccpTab(kccpTabs.log)"><i class="fa-solid fa-terminal"></i> Log</button>
+        <button type="button" data-bind="attr: { class: seg(kccpTab, kccpTabs.status) }, click: (d, e) => $root.selectSegment(e, () => kccpTab(kccpTabs.status))"><span class="segment-pill"></span><i class="fa-solid fa-box-archive"></i> Cache</button>
+        <button type="button" data-bind="attr: { class: seg(kccpTab, kccpTabs.mods) }, click: (d, e) => $root.selectSegment(e, () => kccpTab(kccpTabs.mods))"><span class="segment-pill"></span><i class="fa-solid fa-palette"></i> Mods <span data-bind="visible: kccp().mods.length, text: `(${kccp().mods.length})`"></span></button>
+        <button type="button" data-bind="attr: { class: seg(kccpTab, kccpTabs.log) }, click: (d, e) => $root.selectSegment(e, () => kccpTab(kccpTabs.log))"><span class="segment-pill"></span><i class="fa-solid fa-terminal"></i> Log</button>
       </div>
 
       <!-- ko if: kccpTab() == kccpTabs.status -->

@@ -87,6 +87,34 @@ class Settings {
   // class for a segmented-control button bound to an observable option
   seg = (option, value) => `btn ${option() === value ? 'btn-primary' : 'btn-outline-primary'}`
 
+  // Choosing in a segmented control slides its pill to the new choice in a View Transition. For
+  // its duration the group's buttons and its pill get names: the pill's moves from the old choice
+  // to the new one, and the buttons stay above it (webui.css ::view-transition rules).
+  selectSegment = (event, select) => {
+    const group = event.currentTarget.closest('.btn-group')
+    const buttons = [...group.querySelectorAll(':scope > .btn')]
+    const pill = () => group.querySelector(':scope > .btn-primary > .segment-pill')
+    const name = (on) => {
+      buttons.forEach((b, i) => {
+        b.style.viewTransitionName = on ? `segment-item-${i}` : ''
+        b.style.viewTransitionClass = on ? 'segment-item' : ''
+      })
+    }
+    const namePill = (on) => pill() && (pill().style.viewTransitionName = on ? 'segment-pill' : '')
+    name(true)
+    namePill(true)
+    document
+      .startViewTransition(() => {
+        namePill(false)
+        select()
+        namePill(true)
+      })
+      .finished.finally(() => {
+        name(false)
+        namePill(false)
+      })
+  }
+
   proxyLabel = () => {
     const p = this.config.proxy
     if (!p.enable()) return 'Direct'

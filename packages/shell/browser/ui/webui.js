@@ -67,7 +67,8 @@ class WebUI {
     document.addEventListener(
       'click',
       (ev) => {
-        if (!ev.target.closest('.tab-editing')) this.stopEditingAddress()
+        // by the tab's data, not its class: editing a just-clicked tab is still queued (updateStrip)
+        if (ko.dataFor(ev.target)?.id !== this.requestedEditingTabId) this.stopEditingAddress()
       },
       true,
     )
@@ -116,29 +117,68 @@ class WebUI {
     this.setupBrowserListeners()
   }
 
+  // Every change to the tab strip's state goes through this queue and is applied on the next
+  // frame, so changes arriving together (one tab deselected, another selected) land at once.
+  // Those that move things (selection, tabs added or removed, address editing) are applied in a
+  // View Transition, which morphs the pill and the tabs from the old layout to the new; one runs at
+  // a time, so a change waits for the previous one to finish.
+  stripUpdates = []
+  stripQueue = Promise.resolve()
+  updateStrip(update, animate) {
+    this.stripUpdates.push({ update, animate })
+    if (this.stripUpdates.length > 1) return this.stripQueue
+    this.stripQueue = this.stripQueue
+      .then(() => new Promise((resolve) => requestAnimationFrame(resolve)))
+      .then(() => {
+        const updates = this.stripUpdates.splice(0)
+        // knockout re-creates the tabs' elements on every change, address field included: hand
+        // the focus and caret on to the new field, so typing isn't cut off by a title update
+        const apply = () => {
+          const field = document.activeElement
+          const typing = field?.classList.contains('tab-address')
+          const { selectionStart, selectionEnd } = field ?? {}
+          updates.forEach((u) => u.update())
+          const next = document.querySelector('.tab-address')
+          if (typing && next && next !== field) {
+            next.focus()
+            next.setSelectionRange(selectionStart, selectionEnd)
+          }
+        }
+        if (!updates.some((u) => u.animate)) return apply()
+        return document.startViewTransition(apply).finished.catch(() => {})
+      })
+    return this.stripQueue
+  }
+
   async renderTabs() {
     //console.log('>> rendering tabs')
     const tabs = [...(await this.getCurrentTabs())]
-    for (const tab of tabs)
-      this.prepareTab(
-        tab,
-        this.tabs().find((t) => t.id == tab.id),
-      )
-    this.updateTabSeparators(tabs)
-    this.tabs(tabs)
+    const ids = (list) => list.map((t) => t.id).join()
+    const activeId = (list) =>
+      list.find((t) => (typeof t.active === 'function' ? t.active() : t.active))?.id
+    const moved = ids(tabs) !== ids(this.tabs()) || activeId(tabs) !== activeId(this.tabs())
+    return this.updateStrip(() => {
+      for (const tab of tabs)
+        this.prepareTab(
+          tab,
+          this.tabs().find((t) => t.id == tab.id),
+        )
+      this.updateTabSeparators(tabs)
+      this.tabs(tabs)
 
-    if (!tabs.length) {
-      this.activeTabId(-1)
-      return
-    }
+      if (!tabs.length) {
+        this.activeTabId(-1)
+        return
+      }
 
-    // set a new active tab if previous one is invalid
-    const activeTab = tabs.find((tab) => tab.active())
-    const newId = activeTab?.id || tabs[0].id
-    if ((this.activeTabId() == -1 || this.activeTabId() !== newId) && tabs.length > 0) {
-      //console.log('reinitializing active tab', newId)
-      this.activeTabId(newId)
-    }
+      // set a new active tab if previous one is invalid
+      const activeTab = tabs.find((tab) => tab.active())
+      const newId = activeTab?.id || tabs[0].id
+      if ((this.activeTabId() == -1 || this.activeTabId() !== newId) && tabs.length > 0) {
+        //console.log('reinitializing active tab', newId)
+        this.activeTabId(newId)
+      }
+    }, moved)
   }
 
   prepareTab(tab, oldTab) {
@@ -146,6 +186,26 @@ class WebUI {
     if (!tab.urlInput)
       tab.urlInput = ko.observable(oldTab?.url != tab.url ? tab.url : oldTab.urlInput())
     if (typeof tab.active !== 'function') tab.active = ko.observable(tab.active)
+    this.updateSpeaker(tab)
+  }
+
+  // A tab's speaker shows while it plays sound and for a while after, as in Chrome, so it
+  // doesn't flicker in the pauses between voice lines; kept by tab id, as tab objects are replaced
+  speakerTabIds = ko.observableArray([])
+  speakerTimers = new Map()
+  updateSpeaker(tab) {
+    const timer = this.speakerTimers.get(tab.id)
+    if (tab.audible) {
+      clearTimeout(timer)
+      this.speakerTimers.delete(tab.id)
+      if (!this.speakerTabIds().includes(tab.id)) this.speakerTabIds.push(tab.id)
+    } else if (this.speakerTabIds().includes(tab.id) && !timer) {
+      const hide = () => {
+        this.speakerTimers.delete(tab.id)
+        this.speakerTabIds.remove(tab.id)
+      }
+      this.speakerTimers.set(tab.id, setTimeout(hide, 10000))
+    }
   }
 
   async updateTabSeparators(tabs) {
@@ -193,24 +253,28 @@ class WebUI {
       this.renderTabs()
     })
     chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, details) => {
-      const tab = this.tabs().find((t) => t.id == tabId)
-      if (!tab) return
+      if (!this.tabs().some((t) => t.id == tabId)) return
+      const selects = details.active && this.activeTabId() != details.id
+      this.updateStrip(() => {
+        const tab = this.tabs().find((t) => t.id == tabId)
+        if (!tab) return
 
-      //console.log('>> updating tab', details.id)
-      this.prepareTab(details, tab)
+        //console.log('>> updating tab', details.id)
+        this.prepareTab(details, tab)
 
-      const idx = this.tabs().findIndex((t) => t.id == tabId)
-      if (idx > -1) this.tabs.splice(idx, 1, details)
-      else console.error(`couldn't find tab with id ${tabId}`)
+        const idx = this.tabs().findIndex((t) => t.id == tabId)
+        if (idx > -1) this.tabs.splice(idx, 1, details)
+        else console.error(`couldn't find tab with id ${tabId}`)
 
-      if (this.activeTabId() > 0 && details.active() && this.activeTabId() != details.id) {
-        //console.log('>> also updating old selected tab', this.activeTabId())
-        const currentActive = this.tabs().find((t) => t.id === this.activeTabId())
-        currentActive.active(false)
-        //console.log('setting new active tab', details.id)
-        this.activeTabId(details.id)
-      }
-      this.updateTabSeparators(this.tabs())
+        if (this.activeTabId() > 0 && details.active() && this.activeTabId() != details.id) {
+          //console.log('>> also updating old selected tab', this.activeTabId())
+          const currentActive = this.tabs().find((t) => t.id === this.activeTabId())
+          currentActive.active(false)
+          //console.log('setting new active tab', details.id)
+          this.activeTabId(details.id)
+        }
+        this.updateTabSeparators(this.tabs())
+      }, selects)
     })
     chrome.tabs.onRemoved.addListener(async (tabId) => {
       if (!this.tabs().some((t) => t.id == tabId)) return
@@ -431,7 +495,7 @@ class WebUI {
         this.dragTarget.releasePointerCapture(ev.originalEvent.pointerId)
         if (this.tabMoveNewIndex > 0) chrome.tabs.move(data.id, { index: this.tabMoveNewIndex })
         // select the tab if it's not open
-        chrome.tabs.update(data.id, { active: true })
+        if (!this.pressedActiveTab) chrome.tabs.update(data.id, { active: true })
         const clicked = this.tabMoveNewIndex <= 0 && Math.abs(ev.pageX - this.pressX) < 4
         if (clicked && this.pressedActiveTab) this.startEditingAddress(data)
         this.dragTarget.style.left = '0'
@@ -571,7 +635,9 @@ class WebUI {
   }
     */
 
-  browserActionNewTab() {
+  async browserActionNewTab() {
+    // the click already queued the address field folding back (constructor); add the tab after it
+    await this.stripQueue
     chrome.tabs.create()
   }
   // The settings page stays a tab, hidden from the strip; the Damecon button brings it up
@@ -612,30 +678,22 @@ class WebUI {
     const failed = tab.url.startsWith(this.errorUrl) && new URL(tab.url).searchParams.get('url')
     tab.urlInput(failed || tab.url)
     this.setEditingTab(tab.id)
-    requestAnimationFrame(() => document.querySelector('.tab-address')?.select())
   }
   stopEditingAddress() {
     this.setEditingTab(-1)
   }
   // The tab widens between fitting its title and filling the strip, layouts CSS can't interpolate,
   // so each tab animates from its measured width to its new one (FLIP)
+  // queued like the strip's other changes (updateStrip), so it waits for one under way; compared
+  // with the last request, as the one before may still be waiting its turn
+  requestedEditingTabId = -1
   setEditingTab(id) {
-    if (this.editingTabId() === id) return
-    const tabs = [...document.querySelectorAll('.tab-list > .tab-container')]
-    const before = tabs.map((el) => el.getBoundingClientRect().width)
-    this.editingTabId(id)
-    // measure every tab before animating any: a running animation resizes its tab and the others
-    const after = tabs.map((el) => el.getBoundingClientRect().width)
-    tabs.forEach((el, i) => {
-      if (Math.abs(after[i] - before[i]) < 1) return
-      el.animate(
-        [
-          { width: `${before[i]}px`, minWidth: 0 },
-          { width: `${after[i]}px`, minWidth: 0 },
-        ],
-        { duration: 280, easing: 'cubic-bezier(0.3, 0.7, 0.4, 1)' },
-      )
-    })
+    if (this.requestedEditingTabId === id) return
+    this.requestedEditingTabId = id
+    this.updateStrip(() => {
+      this.editingTabId(id)
+      document.querySelector('.tab-address')?.select()
+    }, true)
   }
   browserActionAddressKeyDown(data, event) {
     event = event.originalEvent

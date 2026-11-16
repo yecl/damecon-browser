@@ -219,8 +219,9 @@ ul {
   position: relative;
 }
 
-/* shadcn TabsList: a groove the active tab's pill slides along (segmented.js) */
+/* shadcn TabsList: a groove the active tab's pill slides along */
 .tab-groove {
+  view-transition-name: tab-groove;
   position: relative;
   height: 32px;
   display: flex;
@@ -236,23 +237,106 @@ ul {
   display: none;
 }
 
-/* the sliding selection of every segmented control (segmented.js) */
+/* The selection of a segmented control (the tab strip, the settings page's button groups): a pill
+   inside the selected item, under its content. A change of selection runs in a View Transition
+   (webui.js updateStrip, settings.js selectSegment), which slides the pill across. */
 .segment-pill {
   position: absolute;
-  top: 0;
-  left: 0;
+  inset: 0;
+  z-index: -1;
+  display: none;
   border-radius: 7px;
   background: var(--tab-active-bg);
   box-shadow:
     0 0 0 1px var(--hairline),
     0 1px 3px rgb(0 0 0 / 8%),
     0 1px 2px -1px rgb(0 0 0 / 8%);
-  opacity: 0;
-  transition:
-    transform 0.28s cubic-bezier(0.3, 0.7, 0.4, 1),
-    width 0.28s cubic-bezier(0.3, 0.7, 0.4, 1),
-    height 0.28s cubic-bezier(0.3, 0.7, 0.4, 1),
-    background-color 0.12s;
+  transition: background-color 0.12s;
+  pointer-events: none;
+}
+.tab-active > .segment-pill,
+.btn-primary > .segment-pill {
+  display: block;
+}
+.tab-active > .segment-pill {
+  view-transition-name: tab-pill;
+}
+
+/* the View Transitions of the tab strip and segmented controls */
+::view-transition-group(*) {
+  animation-duration: 0.28s;
+  animation-timing-function: cubic-bezier(0.3, 0.7, 0.4, 1);
+}
+/* a pill sits in its item, so it'd be drawn over the item's content: keep it underneath */
+::view-transition-group(tab-pill),
+::view-transition-group(segment-pill) {
+  z-index: 1;
+}
+::view-transition-group(.tab),
+::view-transition-group(.segment-item) {
+  z-index: 2;
+}
+/* The groove and the pills are plain rounded boxes: their transition groups draw them at the size
+   being animated, instead of scaling a snapshot, which keeps its aspect ratio and so grows taller
+   as a box widens */
+::view-transition-group(tab-groove) {
+  border-radius: 10px;
+  background: var(--tabs-bg);
+}
+::view-transition-group(tab-pill),
+::view-transition-group(segment-pill) {
+  border-radius: 7px;
+  background: var(--tab-active-bg);
+  box-shadow:
+    0 0 0 1px var(--hairline),
+    0 1px 3px rgb(0 0 0 / 8%),
+    0 1px 2px -1px rgb(0 0 0 / 8%);
+}
+html:has(.tab-editing)::view-transition-group(tab-pill) {
+  box-shadow:
+    0 0 0 1px var(--ring),
+    0 0 0 3px color-mix(in srgb, var(--ring) 35%, transparent);
+}
+::view-transition-old(tab-groove),
+::view-transition-new(tab-groove),
+::view-transition-old(tab-pill),
+::view-transition-new(tab-pill),
+::view-transition-old(segment-pill),
+::view-transition-new(segment-pill) {
+  display: none;
+}
+/* a tab changing width is clipped to it, not stretched */
+::view-transition-old(.tab),
+::view-transition-new(.tab) {
+  width: auto;
+  height: 100%;
+  object-fit: none;
+  object-position: left center;
+}
+::view-transition-image-pair(.tab) {
+  overflow: clip;
+}
+/* a new tab grows in from its left edge; a closed one folds away */
+::view-transition-new(.tab):only-child {
+  animation-name: tab-in;
+}
+::view-transition-old(.tab):only-child {
+  animation-name: tab-out;
+}
+@keyframes tab-in {
+  from {
+    clip-path: inset(0 100% 0 0);
+    opacity: 0;
+  }
+}
+@keyframes tab-out {
+  to {
+    clip-path: inset(0 100% 0 0);
+    opacity: 0;
+  }
+}
+/* clicks during a transition go to the page underneath instead of being swallowed */
+::view-transition {
   pointer-events: none;
 }
 
@@ -265,6 +349,7 @@ ul {
 }
 
 #createtab {
+  view-transition-name: new-tab-button;
   background: transparent;
   border: none;
   color: var(--control-text-color);
@@ -288,12 +373,13 @@ ul {
 }
 
 .tab-container {
+  view-transition-class: tab;
   height: 100%;
   position: relative;
-  overflow: hidden;
+  /* the pill (z-index -1) stays inside the tab, under its content */
+  isolation: isolate;
   width: 13rem;
   min-width: 40px;
-  transition: opacity 0.2s;
 }
 
 /* the settings tab; #settings-button stands in for it */
@@ -337,10 +423,9 @@ ul {
   position: relative;
 }
 
+/* hovering only darkens the title; a fill would read as a second, faded pill */
 .tab:hover {
-  background-color: var(--hover-bg);
   color: var(--chrome-text-color);
-  z-index: 2;
 }
 
 .tab-container.tab-active .tab {
@@ -348,18 +433,17 @@ ul {
   color: var(--chrome-text-color);
 }
 
-/* pressed but not yet released: a deeper fill, or a deeper pill on the selected tab */
+/* pressed but not yet released: the title darkens as on hover, or the selected tab's pill deepens */
 .tab-container.tab-pressed:not(.tab-active) .tab {
-  background-color: color-mix(in srgb, var(--chrome-text-color) 11%, transparent);
+  color: var(--chrome-text-color);
 }
-.tab-groove:has(.tab-active.tab-pressed) .segment-pill,
-.btn-group:has(> .btn-primary:active) > .segment-pill {
+.tab-active.tab-pressed > .segment-pill,
+.btn-primary:active > .segment-pill {
   background: color-mix(in srgb, var(--tab-active-bg), var(--chrome-text-color) 8%);
 }
 
-/* Safari-style: while its address is edited, the active tab grows to fill the strip and the others
-   shrink away. The widths animate from webui.js (setEditingTab), as filling and fitting can't be
-   interpolated here */
+/* Safari-style: while its address is edited, the active tab fills the strip and the others shrink
+   away, in a View Transition (webui.js setEditingTab) */
 .tab-groove:has(.tab-editing),
 .tab-groove:has(.tab-editing) .tab-list {
   flex-grow: 1;
@@ -382,7 +466,7 @@ ul {
 .tab-container.tab-editing .controls {
   display: none;
 }
-.tab-groove:has(.tab-editing) .segment-pill {
+.tab-editing > .segment-pill {
   box-shadow:
     0 0 0 1px var(--ring),
     0 0 0 3px color-mix(in srgb, var(--ring) 35%, transparent);
@@ -687,7 +771,8 @@ ul {
   outline-offset: 1px;
 }
 
-#close:hover {
+/* inside #tabstrip, so it has to outrank #tabstrip .control:hover */
+#tabstrip #close:hover {
   background: oklch(0.577 0.245 27.325);
   color: white;
 }
