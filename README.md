@@ -1,6 +1,8 @@
 # <img src="./packages/shell/icon.png" width="48" height="48" alt="Damecon icon"> damecon-browser
 
-A tabbed browser for playing Kantai Collection, with KC3Kai built in, a built-in KCCacheProxy and HTTP/SOCKS5 proxy support. Its look is inspired by [mygo](https://github.com/egoist/mygo).
+English · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md)
+
+A tabbed browser for playing Kantai Collection, with KC3Kai built in, a built-in KCCacheProxy and HTTP/SOCKS5 proxy support.
 
 ![The game open with KC3Kai in the developer tools panel](./screenshots/ingame.jpg)
 
@@ -28,7 +30,7 @@ Damecon/
   damecon-data/
 ```
 
-Settings, KC3Kai data, the KCCP cache and mods travel with the folder; DMM logins are encrypted per computer, so you sign in again on each one. Don't run both builds on the same data at once. On macOS, clear the quarantine flag of a copied app once, or it can't see the folder: `xattr -dr com.apple.quarantine damecon-browser.app`.
+Settings, KC3Kai data, the KCCP cache and mods travel with the folder; switching to the other build requires signing in to DMM again. On macOS, the quarantine flag may need to be cleared first with: `xattr -dr com.apple.quarantine damecon-browser.app`.
 
 ### From source
 
@@ -76,6 +78,7 @@ Unpacked extensions in `extensions` load automatically, Manifest V2 and V3, and 
 - Click the selected tab, or press Cmd/Ctrl+L, to type an address.
 - Back/forward with Cmd+[ / Cmd+] (Alt+← / Alt+→ on Windows) or the mouse side buttons; Cmd/Ctrl+Shift+T reopens a closed tab; Cmd/Ctrl+F finds in page.
 - Sites ask before using the camera, location, notifications and similar permissions.
+- The interface is in English, Simplified Chinese, Traditional Chinese or Japanese, following the system unless set in Settings → Damecon → Window → Language.
 
 ## License
 

@@ -1,6 +1,7 @@
 import path from 'path'
 import fs from 'fs'
 import { dialog, nativeImage, shell } from 'electron'
+import { t } from './i18n'
 
 const { loadAllExtensions, uninstallExtension } = require('electron-chrome-web-store')
 
@@ -86,9 +87,9 @@ export function createExtensionManager({ session, roots, dataPath, managed }) {
     const name = ext?.name || readDisabled().find((d) => d.key === key)?.name || dir
     const { response } = await dialog.showMessageBox(window, {
       type: 'warning',
-      message: `Remove “${name}”?`,
-      detail: 'Its files and data are deleted.',
-      buttons: ['Cancel', 'Remove'],
+      message: t('Remove “{name}”?', { name }),
+      detail: t('Its files and data are deleted.'),
+      buttons: [t('Cancel'), t('Remove')],
       defaultId: 0,
       cancelId: 0,
     })

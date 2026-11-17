@@ -4,12 +4,16 @@ const params = new URLSearchParams(location.search)
 const url = params.get('url') || ''
 const crashed = params.get('kind') === 'crash'
 
-const heading = crashed ? 'This page crashed' : "This page couldn't load"
-document.title = heading
-document.getElementById('heading').textContent = heading
-document.getElementById('message').textContent = crashed
-  ? 'Its process stopped unexpectedly. Reload to open it again.'
-  : 'Check your connection and the proxy settings, then reload.'
+i18n.ready.then(() => {
+  const heading = t(crashed ? 'This page crashed' : "This page couldn't load")
+  document.title = heading
+  document.getElementById('heading').textContent = heading
+  document.getElementById('message').textContent = t(
+    crashed
+      ? 'Its process stopped unexpectedly. Reload to open it again.'
+      : 'Check your connection and the proxy settings, then reload.',
+  )
+})
 document.getElementById('detail').textContent = [url, params.get('detail')]
   .filter(Boolean)
   .join(' — ')

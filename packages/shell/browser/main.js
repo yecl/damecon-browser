@@ -20,6 +20,7 @@ import * as builtinKccp from './kccp'
 import { zoomGameTab } from './game-zoom'
 import { pinKc3Id } from './kc3-id'
 import { createExtensionManager } from './extension-manager'
+import { setLanguage, t } from './i18n'
 
 const defaultAgents = { http: http.globalAgent, https: https.globalAgent }
 
@@ -643,6 +644,7 @@ class Browser extends EventEmitter {
 
   async init() {
     this.initSession()
+    setLanguage(PATHS.WEBUI, configStore.get('app.language'))
     setupMenu(this)
     builtinKccp.init((type, data) => this.sendToAllWindows(type, data))
 
@@ -781,19 +783,19 @@ class Browser extends EventEmitter {
       async beforeInstall(details) {
         if (!details.browserWindow || details.browserWindow.isDestroyed()) return
 
-        const title = `Add “${details.localizedName}”?`
+        const title = t('Add “{name}”?', { name: details.localizedName })
 
         let message = `${title}`
         if (details.manifest.permissions) {
           const permissions = (details.manifest.permissions || []).join(', ')
-          message += `\n\nPermissions: ${permissions}`
+          message += `\n\n${t('Permissions: {permissions}', { permissions })}`
         }
 
         const returnValue = await dialog.showMessageBox(details.browserWindow, {
           title,
           message,
           icon: details.icon,
-          buttons: ['Cancel', 'Add Extension'],
+          buttons: [t('Cancel'), t('Add Extension')],
         })
 
         return { action: returnValue.response === 0 ? 'deny' : 'allow' }
@@ -881,6 +883,9 @@ class Browser extends EventEmitter {
             await this.updateKc3IfScheduled()
           } else if (data.key === 'window.style.brightness') {
             nativeTheme.themeSource = data.value
+          } else if (data.key === 'app.language') {
+            setLanguage(PATHS.WEBUI, data.value)
+            setupMenu(this)
           } else if (data.key.startsWith('kc3kai.custom')) {
             const kc3Path = this.getKc3Path()
             await this.checkStartKc3(kc3Path)
@@ -1566,11 +1571,11 @@ class Browser extends EventEmitter {
       const parent = BrowserWindow.getFocusedWindow()
       const options = {
         type: 'question',
-        buttons: ['Block', 'Allow'],
+        buttons: [t('Block'), t('Allow')],
         defaultId: 0,
         cancelId: 0,
-        title: 'Permission request',
-        message: `${origin} wants to use: ${permission}`,
+        title: t('Permission request'),
+        message: t('{origin} wants to use: {permission}', { origin, permission }),
       }
       const asking = (
         parent ? dialog.showMessageBox(parent, options) : dialog.showMessageBox(options)
@@ -1601,9 +1606,9 @@ class Browser extends EventEmitter {
       wc.once('responsive', onResponsive)
       const { response } = await dialog.showMessageBox(window, {
         type: 'warning',
-        message: "This page isn't responding",
+        message: t("This page isn't responding"),
         detail: wc.getURL(),
-        buttons: ['Wait', 'Reload'],
+        buttons: [t('Wait'), t('Reload')],
         defaultId: 0,
         cancelId: 0,
         signal: recovered.signal,
@@ -1639,7 +1644,7 @@ class Browser extends EventEmitter {
       maximizable: false,
       fullscreenable: false,
       show: false,
-      title: 'Sign in',
+      title: t('Sign in'),
     })
     prompt.loadURL(`${authUrl}?${params}`)
     prompt.once('ready-to-show', () => prompt.show())
@@ -1675,9 +1680,9 @@ class Browser extends EventEmitter {
     if (!configStore.get('window.behavior.confirmCloseGamePage')) return true
     const choice = dialog.showMessageBoxSync({
       type: 'question',
-      buttons: ['Leave', 'Stay'],
-      title: 'Do you want to leave this site?',
-      message: 'Changes you made may not be saved.',
+      buttons: [t('Leave'), t('Stay')],
+      title: t('Do you want to leave this site?'),
+      message: t('Changes you made may not be saved.'),
       defaultId: 0,
       cancelId: 1,
     })

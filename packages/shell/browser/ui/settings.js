@@ -122,7 +122,10 @@ class Settings {
   }
   kccpLabel = () => {
     const k = this.config.proxy.kccp
-    return `KCCP ${k.mode() === 'internal' ? 'built-in' : 'external'} ${k.host()}:${k.port()}`
+    const address = `${k.host()}:${k.port()}`
+    return t(k.mode() === 'internal' ? 'KCCP built-in {address}' : 'KCCP external {address}', {
+      address,
+    })
   }
   // external KCCP makes its own connections, so Damecon's proxy isn't in that hop
   kccpUpstreamOn = () => this.config.proxy.kccp.mode() === 'internal' && this.config.proxy.enable()
@@ -569,6 +572,8 @@ class Settings {
     this.translocated = appInfo.translocated
     this.version = appInfo.version
     await this.prepConfigProperties()
+    i18n.setLanguage(this.config.app.language())
+    this.config.app.language.subscribe((language) => i18n.setLanguage(language))
     console.log('done prepping config', this.config)
     this.settingsInitialized(true)
 

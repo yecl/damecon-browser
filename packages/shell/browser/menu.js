@@ -1,4 +1,5 @@
 import { Menu } from 'electron'
+import { t } from './i18n'
 
 const setupMenu = (browser) => {
   const isMac = process.platform === 'darwin'
@@ -14,10 +15,10 @@ const setupMenu = (browser) => {
     { role: 'fileMenu' },
     { role: 'editMenu' },
     {
-      label: 'View',
+      label: t('View'),
       submenu: [
         {
-          label: 'Open devtools',
+          label: t('Open devtools'),
           accelerator: 'F12',
           nonNativeMacOSRole: true,
           click: () => tabWc().toggleDevTools(),

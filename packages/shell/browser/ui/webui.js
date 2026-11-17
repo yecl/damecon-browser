@@ -109,6 +109,7 @@ class WebUI {
   async getConfig() {
     const config = await this.sendToMain('get-config')
     this.config(config)
+    i18n.setLanguage(config.app.language)
   }
 
   async initTabs() {
@@ -343,6 +344,7 @@ class WebUI {
         break
       case 'config-saved':
         this.config(msg.data)
+        i18n.setLanguage(msg.data.app.language)
         chrome.runtime.sendMessage(msg)
         break
       case 'webui-init':

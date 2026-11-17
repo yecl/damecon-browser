@@ -7,6 +7,12 @@ if (typeof ipc !== 'undefined') {
 
 const configSchema = {
   app: {
+    // 'system' follows the OS; the others have dictionaries in ui/locales (ui/i18n.js)
+    language: {
+      type: 'option',
+      options: ['system', 'en', 'zh-CN', 'zh-TW', 'ja'],
+      default: 'system',
+    },
     update: {
       removeOld: { type: 'bool', default: true },
     },

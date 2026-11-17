@@ -4,8 +4,12 @@ const params = new URLSearchParams(location.search)
 const id = Number(params.get('id'))
 const realm = params.get('realm')
 // the origin in full, so a site can't pass itself off as another
-document.getElementById('site').textContent =
-  `${params.get('origin')} asks you to sign in` + (realm ? ` to “${realm}”.` : '.')
+i18n.ready.then(() => {
+  const origin = params.get('origin')
+  document.getElementById('site').textContent = realm
+    ? t('{origin} asks you to sign in to “{realm}”.', { origin, realm })
+    : t('{origin} asks you to sign in.', { origin })
+})
 
 const answer = (data) => ipc.send('webui-message', { type: 'auth-response' }, { id, ...data })
 document.getElementById('root').addEventListener('submit', (ev) => {

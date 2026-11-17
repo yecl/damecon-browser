@@ -11,7 +11,7 @@
   <script type="text/javascript" src="assets/js/fontawesome.js" defer></script>
 
   <script type="text/javascript" src="assets/js/knockout-3.5.1.js"></script>
-  <script type="text/javascript" src="assets/js/knockout-i18n.js"></script>
+  <script type="text/javascript" src="i18n.js"></script>
 
   <script type="text/javascript" src="common.js"></script>
   <script type="text/javascript" src="config-utils.js"></script>
@@ -51,7 +51,7 @@
           <!-- /ko -->
         </div>
         <div id="version">
-          <a href="https://github.com/yecl/damecon-browser" title="Damecon on GitHub" data-bind="text: version, click: () => chrome.tabs.create({ url: 'https://github.com/yecl/damecon-browser' })"></a>
+          <a href="https://github.com/yecl/damecon-browser" title="Damecon on GitHub" translate="no" data-bind="text: version, click: () => chrome.tabs.create({ url: 'https://github.com/yecl/damecon-browser' })"></a>
         </div>
       </div>
       <div id="settings-container">
@@ -64,7 +64,7 @@
         <div id="background-processes">
           <!-- ko foreach: processes -->
           <div class="process">
-            <div class="process-name" data-bind="text: name"></div>
+            <div class="process-name" translate="no" data-bind="text: name"></div>
             <!-- ko if: !!$data.phase() || $data.total() > 0 -->
             <div class="process-text">
               <div class="process-phase" data-bind="text: phase"></div>
@@ -104,6 +104,17 @@
       <!-- ko if: appTab() === appTabs.window -->
       <h5>Appearance</h5>
       <div class="settings-group">
+        <div class="dm-field">
+          <label for="language">Language</label>
+          <!-- each language in its own name, so it can be found whatever the current one is -->
+          <select id="language" class="form-control" translate="no" data-bind="value: config.app.language">
+            <option value="system" translate="yes">System</option>
+            <option value="en">English</option>
+            <option value="zh-CN">简体中文</option>
+            <option value="zh-TW">繁體中文</option>
+            <option value="ja">日本語</option>
+          </select>
+        </div>
         <div class="dm-field">
           <label>Brightness</label>
           <div class="btn-group btn-group-sm" role="group">
@@ -178,15 +189,14 @@
         <!-- ko if: config.app.data.location() === 'appdir' && translocated -->
         <div class="dm-error mb-2">
           <i class="fa-solid fa-triangle-exclamation"></i>
-          macOS is running this app from a temporary copy, so it can't find the folder next to it. Run
-          <code>xattr -dr com.apple.quarantine</code> on the app, then start it again.
+          <span data-i18n="whole">macOS is running this app from a temporary copy, so it can't find the folder next to it. Run <code>xattr -dr com.apple.quarantine</code> on the app, then start it again.</span>
         </div>
         <!-- /ko -->
         <p class="small text-muted mb-0">
           Restart Damecon to switch. Existing data isn't moved: a new location starts with fresh settings,
           KC3Kai and cache.
         </p>
-        <p class="small text-muted mb-0 mt-1" data-bind="visible: config.app.data.location() === 'appdir'">
+        <p class="small text-muted mb-0 mt-1" data-i18n="whole" data-bind="visible: config.app.data.location() === 'appdir'">
           Portable: put the macOS app and the extracted Windows folder side by side (e.g. on a USB drive) and both
           use the <code>damecon-data</code> folder beside them. DMM logins are encrypted per computer, so you'll
           sign in again on each one.
@@ -415,7 +425,7 @@
           <span class="slider"></span>
           <span>Send game servers through KCCP</span>
         </label>
-        <p class="small text-muted">
+        <p class="small text-muted" data-i18n="whole">
           KCCP caches game assets (ship art, voices, maps...) on disk and can apply asset mods.
           Only <code>*.kancolle-server.com</code> goes through it.
         </p>
@@ -441,11 +451,11 @@
           <button type="button" data-bind="attr: { class: seg(config.proxy.kccp.mode, 'internal') }, click: (d, e) => $root.selectSegment(e, () => config.proxy.kccp.mode('internal'))"><span class="segment-pill"></span>Built-in</button>
           <button type="button" data-bind="attr: { class: seg(config.proxy.kccp.mode, 'external') }, click: (d, e) => $root.selectSegment(e, () => config.proxy.kccp.mode('external'))"><span class="segment-pill"></span>External</button>
         </div>
-        <p class="small text-muted" data-bind="visible: config.proxy.kccp.mode() === 'internal'">
+        <p class="small text-muted" data-i18n="whole" data-bind="visible: config.proxy.kccp.mode() === 'internal'">
           Damecon runs KCCP itself. Its downloads from the game servers go through the proxy on the Proxy page, and no
           certificate needs to be trusted. Cache, mods and KCCP's config.json live in <code>userdata/kccp</code>.
         </p>
-        <p class="small text-muted" data-bind="visible: config.proxy.kccp.mode() === 'external'">
+        <p class="small text-muted" data-i18n="whole" data-bind="visible: config.proxy.kccp.mode() === 'external'">
           Use a KCCP you run yourself and enter its HTTPS (MITM) port. It downloads from the game servers on its own
           network, not through Damecon's proxy. To proxy it, run it on a recent Node.js (e.g. the Docker image) with
           <code>NODE_USE_ENV_PROXY=1</code> and <code>HTTPS_PROXY=http://host:port</code>, or use a system-wide/TUN proxy.
@@ -517,7 +527,7 @@
           <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="enable: !kccp().busy, click: () => kccpCall('preload')" title="download the assets KCCP recommends ahead of time"><i class="fa-solid fa-cloud-arrow-down"></i> Preload assets</button>
           <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="enable: !kccp().busy, click: () => kccpCall('import-cache')"><i class="fa-solid fa-file-zipper"></i> Import cache dump</button>
         </div>
-        <p class="small text-muted mb-0">
+        <p class="small text-muted mb-0" data-i18n="whole">
           KCCP only caches what you load. Preload fetches the common assets now; a
           <a href="https://github.com/Tibowl/KCCacheProxy/wiki/Installation-and-setup#using-cache-dumps" target="_blank">cache dump</a>
           adds everything at once.
@@ -555,7 +565,7 @@
           <span class="slider"></span>
           <span>Use .hack files</span>
         </label>
-        <p class="small text-muted">
+        <p class="small text-muted" data-i18n="whole">
           Classic whole-file replacement, as used by poi and other tools. Put <code>&lt;name&gt;.hack.&lt;ext&gt;</code> in the
           hack folder under the game path, e.g. <code>kcs2/resources/ship/full/0467_6223_qgrxbhuvtrbf.hack.png</code>.
           They take priority over the cache and the mods below.
@@ -563,7 +573,7 @@
           (岛风GO format); they apply when the game starts. Reload after adding or removing files.
         </p>
         <div class="dm-tools mb-0">
-          <span class="small align-self-center mr-2" data-bind="text: `${kccp().hackFiles} .hack files, ${kccp().shipInis} config.ini`"></span>
+          <span class="small align-self-center mr-2" data-bind="text: t('{hacks} .hack files, {inis} config.ini', { hacks: kccp().hackFiles, inis: kccp().shipInis })"></span>
           <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: () => kccpCall('open-hack-folder')"><i class="fa-regular fa-folder-open"></i> Hack folder</button>
           <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: () => kccpCall('reload-hacks')" title="rescan the folder and clear the browser cache"><i class="fa-solid fa-rotate"></i> Reload</button>
         </div>
@@ -575,7 +585,7 @@
           <div class="kccp-mod-label">
             <div>
               <span data-bind="text: `${$index() + 1}.`"></span>
-              <strong data-bind="text: info ? info.name : path"></strong>
+              <strong translate="no" data-bind="text: info ? info.name : path"></strong>
               <!-- ko if: info && info.version -->
               <span class="subtext" data-bind="text: `v${info.version}`"></span>
               <!-- /ko -->
@@ -587,7 +597,7 @@
               <!-- /ko -->
             </div>
             <!-- ko if: info && info.authors -->
-            <span class="subtext" data-bind="text: info.authors.join(', ')"></span>
+            <span class="subtext" translate="no" data-bind="text: info.authors.join(', ')"></span>
             <!-- /ko -->
           </div>
           <div class="controls">
@@ -619,8 +629,8 @@
         <!-- ko foreach: kccpRecommendedMods -->
         <div class="dm-row">
           <div>
-            <a data-bind="attr: { href: url }, text: name" target="_blank"></a>
-            <span class="subtext" data-bind="text: `by ${authors.join(', ')}`"></span>
+            <a data-bind="attr: { href: url }, text: name" target="_blank" translate="no"></a>
+            <span class="subtext" data-bind="text: t('by {authors}', { authors: authors.join(', ') })"></span>
           </div>
           <button type="button" class="btn btn-outline-primary btn-sm" data-bind="enable: !$root.kccp().busy, click: () => $root.kccpAddGitMod(url)"><i class="fa-solid fa-plus"></i> Install</button>
         </div>
@@ -632,7 +642,7 @@
       <div id="kccp-log-scroller" class="dm-log">
         <!-- ko foreach: kccpLog -->
         <div data-bind="attr: { class: `dm-log-line ${$data[2]}` }">
-          <span class="time" data-bind="text: $data[0]"></span><span class="msg" data-bind="text: $data[3]"></span>
+          <span class="time" translate="no" data-bind="text: $data[0]"></span><span class="msg" translate="no" data-bind="text: $data[3]"></span>
         </div>
         <!-- /ko -->
         <!-- ko if: kccpLog().length === 0 -->
@@ -645,7 +655,7 @@
 
     <script type="text/html" id="settings-content-5">
       <h3>Extensions</h3>
-      <p class="text-muted">Installed from the Chrome Web Store, or unpacked in the <code>extensions</code> folder. A disabled extension stays off after a restart.</p>
+      <p class="text-muted" data-i18n="whole">Installed from the Chrome Web Store, or unpacked in the <code>extensions</code> folder. A disabled extension stays off after a restart.</p>
       <div class="dm-tools">
         <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: () => extensionsCall('open-folder')"><i class="fa-regular fa-folder-open"></i> Extensions folder</button>
         <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: () => chrome.tabs.create({ url: 'https://chromewebstore.google.com' })"><i class="fa-solid fa-store"></i> Chrome Web Store</button>
@@ -663,8 +673,8 @@
           <span class="dm-extension-icon"><i class="fa-solid fa-puzzle-piece"></i></span>
           <!-- /ko -->
           <span class="dm-extension-label">
-            <span class="dm-extension-name" data-bind="text: name"></span>
-            <span class="small text-muted" data-bind="text: managed ? `${version} · managed on its own page` : `${version} · ${key.startsWith('store:') ? 'Chrome Web Store' : 'unpacked'}`"></span>
+            <span class="dm-extension-name" translate="no" data-bind="text: name"></span>
+            <span class="small text-muted" data-bind="text: t(managed ? '{version} · managed on its own page' : key.startsWith('store:') ? '{version} · Chrome Web Store' : '{version} · unpacked', { version })"></span>
           </span>
           <!-- ko ifnot: managed -->
           <label class="dm-switch mb-0" data-bind="attr: { title: enabled ? 'disable' : 'enable' }">
@@ -693,7 +703,7 @@
           <div class="download-info">
             <i data-bind="attr: { class: `dm-file-icon fa-regular ${state() === 'complete' ? 'fa-file-lines' : state() === 'interrupted' ? 'fa-file-circle-xmark' : 'fa-file-arrow-down'}` }"></i>
             <span class="download-label">
-              <label class="filename" data-bind="text: file"></label>
+              <label class="filename" translate="no" data-bind="text: file"></label>
               <span class="bytes-received">
                 <!-- ko if: state() == 'in_progress' && totalBytes() > 0 -->
                 <label data-bind="text: `${received()} / ${total()}`"></label>

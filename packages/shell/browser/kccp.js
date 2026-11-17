@@ -4,6 +4,7 @@ import { inspect } from 'util'
 import zlib from 'zlib'
 import { Readable } from 'stream'
 import { dialog, session, shell } from 'electron'
+import { t } from './i18n'
 import { decodeIni, parseIni, applyShipInis } from './shipgraph-ini'
 
 // Built-in KCCacheProxy. KCCP keeps its config in module state loaded from DATA_DIR,
@@ -262,9 +263,11 @@ async function confirmScripts(modPath) {
   if (!meta.requireScripts) return true
   const { response } = await dialog.showMessageBox({
     type: 'question',
-    buttons: ['Allow', 'Cancel'],
-    title: 'Mod scripts',
-    message: `The mod "${meta.name}" runs its own scripts. Only allow this if you trust it.`,
+    buttons: [t('Allow'), t('Cancel')],
+    title: t('Mod scripts'),
+    message: t('The mod “{name}” runs its own scripts. Only allow this if you trust it.', {
+      name: meta.name,
+    }),
   })
   return response === 0
 }
