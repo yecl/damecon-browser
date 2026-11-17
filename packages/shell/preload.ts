@@ -10,6 +10,7 @@ const localPages = [
   '/_generated_background_page.html',
   '/webui.html',
   '/search.html',
+  '/auth.html',
 ]
 if (location.protocol === 'chrome-extension:' && localPages.includes(location.pathname)) {
   console.log('Successfully injected into', location.pathname)

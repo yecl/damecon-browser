@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Sign in</title>
+    <link rel="stylesheet" href="webui.css" />
+    <link rel="stylesheet" href="auth.css" />
+  </head>
+  <body>
+    <form id="root">
+      <h1>Sign in</h1>
+      <p id="site"></p>
+      <label>Username <input id="username" type="text" autocomplete="username" autofocus /></label>
+      <label>Password <input id="password" type="password" autocomplete="current-password" /></label>
+      <div class="buttons">
+        <button id="cancel" type="button">Cancel</button>
+        <button id="submit" type="submit">Sign in</button>
+      </div>
+    </form>
+    <script src="auth.js"></script>
+  </body>
+</html>

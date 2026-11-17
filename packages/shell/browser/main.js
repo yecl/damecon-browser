@@ -293,6 +293,7 @@ let DMMPageUrl
 let newTabUrl
 let searchUrl
 let errorUrl
+let authUrl
 let settingsUrl
 let confirmCloseUrls = []
 
@@ -505,6 +506,16 @@ class Browser extends EventEmitter {
     })
 
     app.on('web-contents-created', this.onWebContentsCreated.bind(this))
+
+    // A site asking for HTTP authentication gets a prompt; Chromium remembers the answer until
+    // quit. A proxy asking for it is left to fail, as proxy credentials aren't supported.
+    app.on('login', (event, webContents, details, authInfo, callback) => {
+      if (authInfo.isProxy) return
+      event.preventDefault()
+      this.promptLogin(webContents, details, authInfo).then((login) =>
+        login ? callback(login.username, login.password) : callback(),
+      )
+    })
   }
 
   destroy() {
@@ -826,6 +837,7 @@ class Browser extends EventEmitter {
     settingsUrl = webuiBase + '/settings.html'
     searchUrl = webuiBase + '/search.html'
     errorUrl = webuiBase + '/error.html'
+    authUrl = webuiBase + '/auth.html'
 
     const initialWindow = this.createTabbedWindow({
       initialUrls: [settingsUrl],
@@ -895,6 +907,9 @@ class Browser extends EventEmitter {
           break
         case 'kccp':
           result = await builtinKccp.action(data.action, data)
+          break
+        case 'auth-response':
+          this.loginPrompts.get(data.id)?.(data.cancel ? null : data)
           break
         case 'extensions':
           result = await this.extensionManager.action(
@@ -1599,6 +1614,43 @@ class Browser extends EventEmitter {
       tab.reloadingHungPage = true
       wc.forcefullyCrashRenderer()
       wc.reload()
+    })
+  }
+
+  loginPrompts = new Map()
+  loginPromptCount = 0
+  promptLogin(webContents, details, authInfo) {
+    const parent =
+      this.windows.find((w) => w.tabs.tabList.some((t) => t.webContents === webContents))?.window ??
+      BrowserWindow.getFocusedWindow()
+    const id = ++this.loginPromptCount
+    const params = new URLSearchParams({
+      id,
+      origin: new URL(details.url).origin,
+      realm: authInfo.realm || '',
+    })
+    const prompt = new BrowserWindow({
+      parent,
+      modal: true,
+      width: 380,
+      height: 300,
+      resizable: false,
+      minimizable: false,
+      maximizable: false,
+      fullscreenable: false,
+      show: false,
+      title: 'Sign in',
+    })
+    prompt.loadURL(`${authUrl}?${params}`)
+    prompt.once('ready-to-show', () => prompt.show())
+    return new Promise((resolve) => {
+      const answer = (login) => {
+        this.loginPrompts.delete(id)
+        if (!prompt.isDestroyed()) prompt.destroy()
+        resolve(login)
+      }
+      this.loginPrompts.set(id, answer)
+      prompt.on('closed', () => this.loginPrompts.get(id)?.(null))
     })
   }
 
