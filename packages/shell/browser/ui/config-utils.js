@@ -43,6 +43,8 @@ const configSchema = {
     behavior: {
       confirmCloseGamePage: { type: 'bool', default: true },
       occlusion: { type: 'bool', default: false },
+      // the window can't be resized or maximized (the lock button in the tab strip)
+      lockSize: { type: 'bool', default: false },
     },
     gpu: {
       availableMemoryMb: { type: 'number', default: 10000 },

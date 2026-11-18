@@ -661,6 +661,7 @@ class Browser extends EventEmitter {
     this.session.setPermissionCheckHandler((webContents, permission, requestingOrigin) => {
       const origin = originOf(requestingOrigin)
       if (!origin) return false
+      if (permission === 'fullscreen' && this.isSizeLocked()) return false
       if (isTrustedPermission(origin, permission)) return true
       return this.permissionDecisions.get(`${origin} ${permission}`) === true
     })
@@ -883,6 +884,14 @@ class Browser extends EventEmitter {
             await this.updateKc3IfScheduled()
           } else if (data.key === 'window.style.brightness') {
             nativeTheme.themeSource = data.value
+          } else if (data.key === 'window.behavior.lockSize') {
+            setupMenu(this)
+            for (const w of this.windows) {
+              this.applyWindowSizeLock(w.window)
+              for (const tab of w.tabs.tabList)
+                if (tab.webContents.isDevToolsOpened())
+                  this.applyDevtoolsSizeLock(tab.webContents.devToolsWebContents)
+            }
           } else if (data.key === 'app.language') {
             setLanguage(PATHS.WEBUI, data.value)
             setupMenu(this)
@@ -937,7 +946,8 @@ class Browser extends EventEmitter {
           break
         case 'fit-game-to-window': {
           const fitTab = this.windows.find((w) => w.window.id === meta.windowId)?.tabs.selected
-          if (fitTab) console.log('Game zoom:', await zoomGameTab(fitTab.webContents))
+          if (fitTab && !this.isSizeLocked())
+            console.log('Game zoom:', await zoomGameTab(fitTab.webContents))
           break
         }
         case 'webui-display-mode-changed': {
@@ -1128,6 +1138,7 @@ class Browser extends EventEmitter {
       this.windows.splice(idx, 1)
       newTabbedWindow.destroy()
     })
+    this.applyWindowSizeLock(newTabbedWindow.window)
     const onInput = (event, input) => this.handleShortcut(newTabbedWindow, event, input)
     newTabbedWindow.webContents.on('before-input-event', onInput)
     // a click released in a page, its DevTools or the find bar ends address editing in the webui
@@ -1440,6 +1451,138 @@ class Browser extends EventEmitter {
     else apply()
   }
 
+  // With the window size locked, docked DevTools can't be resized or zoomed either. The splitter
+  // between the page and DevTools belongs to the DevTools frontend: it is the resizer of its
+  // outermost split widget, which a style in that widget's shadow root switches off. DevTools zooms
+  // itself (its own shortcuts, also forwarded from extension panels such as KC3's) through its
+  // host's zoom calls, which do nothing while locked. Its toolbar buttons and shortcuts for element
+  // picking, device mode, settings, the main menu (dock side) and closing are hidden or switched off.
+  applyDevtoolsSizeLock(devtools) {
+    const locked = this.isSizeLocked()
+    const apply = () =>
+      devtools
+        .executeJavaScript(
+          `(async () => {
+            const Host = await import('./core/host/host.js')
+            const host = Host.InspectorFrontendHost.InspectorFrontendHostInstance
+            host.dameconZoom ??= { zoomIn: host.zoomIn, zoomOut: host.zoomOut, resetZoom: host.resetZoom }
+            for (const [name, zoom] of Object.entries(host.dameconZoom))
+              host[name] = ${locked} ? () => {} : zoom
+            const locked = ${locked}
+            // the actions behind those buttons, so their shortcuts (Cmd/Ctrl+Shift+M, C and D, F1)
+            // do nothing either; opening and closing DevTools is the app menu's, and stays
+            const UI = await import('./ui/legacy/legacy.js')
+            const actions = UI.ActionRegistry.ActionRegistry.instance()
+            // also the command menu, which reaches all of them, and the drawer (Esc), which squeezes
+            // the panel above it
+            for (const id of ['emulation.toggle-device-mode', 'elements.toggle-element-search', 'main.toggle-dock', 'settings.show', 'quick-open.show-command-menu', 'main.toggle-drawer'])
+              if (actions.hasAction(id)) actions.getAction(id).setEnabled(!locked)
+            // every element, shadow roots included, in document order
+            const all = function* (root) {
+              for (const el of root.querySelectorAll('*')) {
+                yield el
+                if (el.shadowRoot) yield* all(el.shadowRoot)
+              }
+            }
+            const context = (el) => el.getAttribute('jslog')?.match(/context: ([^;]+)/)?.[1]
+            for (let i = 0; i < 100; i++) {
+              const elements = [...all(document)]
+              const split = elements.find((el) =>
+                el.shadowRoot?.querySelector('.shadow-split-widget-resizer'),
+              )?.shadowRoot
+              const menu = elements.find((el) => context(el) === 'main-menu')
+              if (split && menu) {
+                // the drawer's splitter too, should the drawer be open when the lock is set
+                const drawer = UI.InspectorView.InspectorView.instance().drawerSplitWidget?.element.shadowRoot
+                for (const root of [split, drawer].filter(Boolean)) {
+                  root.getElementById('damecon-lock-size')?.remove()
+                  if (locked) {
+                    const style = document.createElement('style')
+                    style.id = 'damecon-lock-size'
+                    style.textContent = '.shadow-split-widget-resizer { pointer-events: none !important; }'
+                    root.append(style)
+                  }
+                }
+                // the toolbar buttons that change the page's size or where DevTools sits: picking an
+                // element and device mode; settings, the main menu (dock side) and closing DevTools,
+                // the Close beside the main menu (panels' own tabs have Close buttons too); and the
+                // drawer's minimize and close, should it be open
+                const buttons = elements
+                  .filter((el) =>
+                    ['elements.toggle-element-search', 'emulation.toggle-device-mode', 'settings.show', 'main-menu', 'minimize-drawer', 'close-drawer'].includes(context(el)),
+                  )
+                  .concat([...menu.parentNode.children].filter((el) => el.getAttribute('jslog')?.startsWith('Close')))
+                for (const el of buttons) {
+                  const host = el.getRootNode().host
+                  const item = host?.tagName === 'DEVTOOLS-BUTTON' ? host : el
+                  // the left toolbar holds just picking, device mode and a divider: hide it whole
+                  const left = item.parentNode.classList?.contains('tabbed-pane-left-toolbar')
+                  ;(left ? item.parentNode : item).style.display = locked ? 'none' : ''
+                }
+                // the error, warning and issue counters, which open the console or the Issues panel.
+                // They come and go with what the page reports, in shadow roots made later, and
+                // DevTools shows them again itself: one style sheet, adopted by the document and
+                // every shadow root, those attached later too, hides them while locked
+                if (!window.dameconLockSheet) {
+                  const sheet = (window.dameconLockSheet = new CSSStyleSheet())
+                  const adopt = (root) => {
+                    if (!root.adoptedStyleSheets.includes(sheet))
+                      root.adoptedStyleSheets = [...root.adoptedStyleSheets, sheet]
+                  }
+                  adopt(document)
+                  for (const el of elements) if (el.shadowRoot) adopt(el.shadowRoot)
+                  const attachShadow = Element.prototype.attachShadow
+                  Element.prototype.attachShadow = function (...args) {
+                    const root = attachShadow.apply(this, args)
+                    adopt(root)
+                    return root
+                  }
+                }
+                window.dameconLockSheet.replaceSync(locked ? '[jslog^="Counter"] { display: none !important; }' : '')
+                // and the item of the right toolbar that holds them, which would leave a gap
+                for (const el of elements.filter((el) => el.getAttribute('jslog')?.startsWith('Counter'))) {
+                  let item = el
+                  while (item && !item.parentNode?.classList?.contains('tabbed-pane-right-toolbar'))
+                    item = item.parentNode ?? item.host
+                  if (item) item.style.display = locked ? 'none' : ''
+                }
+                // and the right toolbar's dividers, which would be left with nothing to divide
+                for (const el of elements.filter((el) => el.classList?.contains('toolbar-divider') && el.parentNode?.classList?.contains('tabbed-pane-right-toolbar')))
+                  el.style.display = locked ? 'none' : ''
+                // the panel tabs were fitted to the toolbars as they were: fit them again
+                dispatchEvent(new Event('resize'))
+                return true
+              }
+              await new Promise((resolve) => setTimeout(resolve, 100)) // not built yet
+            }
+            return false
+          })()`,
+        )
+        .then((ok) => ok || console.error('DevTools size lock not applied'))
+        .catch((error) => console.error('Failed to apply the DevTools size lock:', error))
+    if (devtools.isLoading()) devtools.once('did-finish-load', apply)
+    else apply()
+  }
+
+  isSizeLocked() {
+    return !!configStore.get('window.behavior.lockSize')
+  }
+
+  // Not resizable stops the user resizing and maximizing; minimum = maximum = the current size also
+  // stops programmatic resizes such as chrome.windows.update, which KC3's fit button uses. Not
+  // fullscreenable stops the menu's and the window button's fullscreen; a page asking for
+  // fullscreen is refused in askPermission.
+  applyWindowSizeLock(win) {
+    const locked = this.isSizeLocked()
+    // the size limits go first: while minimum = maximum, a window can't be made resizable again
+    const [width, height] = locked ? win.getSize() : [0, 0]
+    win.setMinimumSize(width, height)
+    win.setMaximumSize(width, height)
+    win.setResizable(!locked)
+    win.setMaximizable(!locked)
+    win.setFullScreenable(!locked)
+  }
+
   async onWebContentsCreated(event, webContents) {
     const browser = this
     const type = webContents.getType()
@@ -1454,6 +1597,7 @@ class Browser extends EventEmitter {
         console.log('Window created', details)
       })
       this.applyDevtoolsNetworkLog(devtools)
+      this.applyDevtoolsSizeLock(devtools)
     })
 
     //*
@@ -1511,6 +1655,7 @@ class Browser extends EventEmitter {
     })
 
     webContents.on('zoom-changed', (event, zoomDirection) => {
+      if (this.isSizeLocked()) return
       //console.log(">> webContents.on('zoom-changed')", zoomDirection)
       var currentZoom = webContents.getZoomFactor()
       const isWebui = webContents.mainFrame.url == webuiUrl
@@ -1565,6 +1710,8 @@ class Browser extends EventEmitter {
   async askPermission(permission, url) {
     const origin = originOf(url)
     if (!origin) return false
+    // a page going fullscreen would resize the game while the window size is locked
+    if (permission === 'fullscreen' && this.isSizeLocked()) return false
     if (isTrustedPermission(origin, permission)) return true
     const key = `${origin} ${permission}`
     if (!this.permissionDecisions.has(key)) {

@@ -65,7 +65,8 @@
             </button>
             <div class="app-drag app-drag-right"></div>
             <div class="strip-group view-controls">
-              <button id="fitgame" type="button" class="control" title="fit game to window" data-bind="click: browserActionFitGame"><i class="lucide lucide-maximize"></i></button>
+              <button id="fitgame" type="button" class="control" title="fit game to window" data-bind="click: browserActionFitGame, enable: !lockSizeLocked()"><i class="lucide lucide-maximize"></i></button>
+              <button id="locksize" type="button" class="control" data-bind="attr: { title: lockSizeLocked() ? 'hold to unlock the window size' : 'hold to lock the window size' }, css: { 'control-active': lockSizeLocked, holding: lockHold() === 'holding', armed: lockHold() === 'armed', open: (lockHold() === 'armed') === lockSizeLocked(), toggled: lockToggled }, event: { pointerdown: lockSizePress, pointerup: lockSizeRelease, pointerleave: lockSizeCancel, pointercancel: lockSizeCancel }"><svg class="lock-progress" viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="7" pathLength="100" /></svg><span class="lock-icon"><i class="lucide lucide-lock-shackle"></i><i class="lucide lucide-lock-body"></i></span></button>
             </div>
             <div class="strip-group app-controls">
               <!-- ko if: config().window.view.alwaysShowExtensions -->
@@ -82,7 +83,7 @@
             </div>
             <div class="window-controls">
               <button id="minimize" type="button" class="control" title="minimize" data-bind="click: windowActionMinimize"><i class="lucide lucide-minus"></i></button>
-              <button id="maximize" type="button" class="control" title="maximize" data-bind="click: windowActionMaximize"><i class="lucide lucide-square"></i></button>
+              <button id="maximize" type="button" class="control" title="maximize" data-bind="click: windowActionMaximize, enable: !lockSizeLocked()"><i class="lucide lucide-square"></i></button>
               <button id="close" type="button" class="control" title="close" data-bind="click: windowActionClose"><i class="lucide lucide-x"></i></button>
             </div>
           </div>

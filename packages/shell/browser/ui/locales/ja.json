@@ -8,6 +8,8 @@
   "close tab": "タブを閉じる",
   "create new tab": "新しいタブ",
   "fit game to window": "ウィンドウに合わせる",
+  "hold to lock the window size": "長押しでウィンドウサイズを固定",
+  "hold to unlock the window size": "長押しでウィンドウサイズの固定を解除",
   "Damecon settings": "Damecon の設定",
   "downloads": "ダウンロード",
   "minimize": "最小化",

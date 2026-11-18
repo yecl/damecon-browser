@@ -30,6 +30,8 @@ module.exports = {
     {
       name: '@electron-forge/maker-dmg',
       platforms: ['darwin'],
+      // the volume's icon while the dmg is mounted; Electron's otherwise
+      config: { icon: path.join(__dirname, 'icon.icns') },
     },
   ],
   plugins: [

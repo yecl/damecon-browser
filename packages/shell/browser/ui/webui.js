@@ -343,6 +343,7 @@ class WebUI {
         chrome.runtime.sendMessage(msg)
         break
       case 'config-saved':
+        this.lockPending(null)
         this.config(msg.data)
         i18n.setLanguage(msg.data.app.language)
         chrome.runtime.sendMessage(msg)
@@ -656,6 +657,35 @@ class WebUI {
   browserActionGoForward() {
     chrome.tabs.goForward()
   }
+  // The window size lock takes a 5-second hold, so a stray click can't flip it; it toggles when
+  // released after that, and shows the state it will switch to once the hold is long enough
+  lockHold = ko.observable('') // '', 'holding' or 'armed'
+  lockToggled = ko.observable(false) // the bounce as the lock flips
+  // the new state shows as soon as the lock flips, rather than once main has saved it
+  lockPending = ko.observable(null)
+  lockSizeLocked = ko.pureComputed(
+    () => this.lockPending() ?? !!this.config()?.window.behavior.lockSize,
+  )
+  lockSizePress(data, ev) {
+    if (ev.button !== 0) return
+    this.lockHold('holding')
+    this.lockHoldTimer = setTimeout(() => this.lockHold('armed'), 5000)
+  }
+  lockSizeRelease() {
+    if (this.lockHold() === 'armed') {
+      const locked = !this.lockSizeLocked()
+      this.lockPending(locked)
+      this.sendToMain('set-config-item', { key: 'window.behavior.lockSize', value: locked })
+      this.lockToggled(true)
+      setTimeout(() => this.lockToggled(false), 450)
+    }
+    this.lockSizeCancel()
+  }
+  lockSizeCancel() {
+    clearTimeout(this.lockHoldTimer)
+    this.lockHold('')
+  }
+
   browserActionFitGame() {
     this.sendToMain('fit-game-to-window')
   }
