@@ -56,8 +56,8 @@ yarn start
 
 可在**设置 → KC3Kai** 中选择更新渠道：
 
-- `release`（推荐，稳定版）、`master` 或 `develop`（开发版）。
-- `custom`（自定义 1 / 自定义 2）：指向你自行管理的本地 KC3 文件夹。
+- **Release**（推荐，稳定版）、**Master** 或 **Develop**（开发版）。
+- **自定义 1** / **自定义 2**：指向你自行管理的本地 KC3 文件夹。
 
 各渠道的程序文件与数据彼此独立，切换渠道不会重新下载。若不再需要某个渠道，直接删除 `extensions` 文件夹下对应的 `kc3kai-*` 文件夹即可。
 
@@ -84,13 +84,13 @@ yarn start
 
 ## 扩展程序
 
-放在 `extensions` 文件夹中的已解压扩展程序会自动加载（同时支持 Manifest V2 与 V3），也可以直接从 Chrome 网上应用店安装。由于浏览器外壳尚未实现部分扩展 API，依赖这些接口的扩展无法正常工作，包括 `chrome.proxy`、`webRequest.onAuthRequired`，以及开发者工具或 iframe 内的扩展页面所使用的 `tabs` / `windows` / `downloads` API。
+放在 `extensions` 文件夹中的已解压扩展程序会自动加载（同时支持 Manifest V2 与 V3），也可以直接从 Chrome 网上应用店安装。可在**设置 → 扩展程序**中启用、停用或移除已安装的扩展程序。由于浏览器外壳尚未实现部分扩展 API，依赖这些接口的扩展无法正常工作，包括 `chrome.proxy`、`webRequest.onAuthRequired`，以及开发者工具或 iframe 内的扩展页面所使用的 `tabs` / `windows` / `downloads` API。
 
 ## 游戏与浏览体验
 
 - **适应窗口**：点击标签栏中的该按钮可将游戏画面缩放至填满当前标签页（同时适用于 DMM 游戏页面与 KC3 的游戏页面）；在**设置 → Damecon → 艦これ → 帧率**中最高可将游戏设为 240 FPS 运行。
-- **地址栏**：点击当前已选中的标签页，或按 `Cmd/Ctrl+L` 即可输入网址。
-- **常用快捷键**：使用 `Cmd+[` / `Cmd+]`（Windows 为 `Alt+←` / `Alt+→`）或鼠标侧键前进、后退；按 `Cmd/Ctrl+Shift+T` 重新打开刚关闭的标签页；按 `Cmd/Ctrl+F` 在页面中查找。
+- **地址栏**：点击当前已选中的标签页，或按 `Cmd/Ctrl+L`、`Alt+D` 即可输入网址。
+- **常用快捷键**：使用 `Cmd+[` / `Cmd+]`（Windows 与 Linux 为 `Alt+←` / `Alt+→`）或鼠标侧键前进、后退；按 `Cmd/Ctrl+Shift+T` 重新打开刚关闭的标签页；按 `Cmd/Ctrl+1–9` 切换标签页；按 `Cmd/Ctrl+F` 在页面中查找。
 - **网站权限**：网站请求使用摄像头、位置信息或通知等权限时，会先弹窗征得你的允许。
 - **界面语言**：支持英文、简体中文、繁体中文与日文，默认跟随系统语言，可在**设置 → Damecon → 窗口 → 语言**中随时切换。
 

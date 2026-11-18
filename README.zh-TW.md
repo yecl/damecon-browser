@@ -56,8 +56,8 @@ yarn start
 
 可在**設定 → KC3Kai** 中選擇更新通道：
 
-- `release`（建議，穩定版）、`master` 或 `develop`（開發版）。
-- `custom`（自訂 1 / 自訂 2）：指向自行管理的本機 KC3 資料夾。
+- **Release**（建議，穩定版）、**Master** 或 **Develop**（開發版）。
+- **自訂 1** / **自訂 2**：指向自行管理的本機 KC3 資料夾。
 
 各通道的程式與資料相互獨立，切換通道不會重新下載。若要移除某個通道，直接刪除 `extensions` 資料夾下對應的 `kc3kai-*` 資料夾即可。
 
@@ -84,13 +84,13 @@ yarn start
 
 ## 擴充功能
 
-放在 `extensions` 資料夾中已解壓縮的擴充功能會自動載入（同時支援 Manifest V2 與 V3），亦可直接從 Chrome 線上應用程式商店安裝。由於部分擴充功能 API 尚未實作，並非所有擴充功能皆可執行，例如 `chrome.proxy`、`webRequest.onAuthRequired`，以及開發人員工具或 iframe 內擴充功能頁面所使用的 `tabs` / `windows` / `downloads` API。
+放在 `extensions` 資料夾中已解壓縮的擴充功能會自動載入（同時支援 Manifest V2 與 V3），亦可直接從 Chrome 線上應用程式商店安裝。可在**設定 → 擴充功能**中啟用、停用或移除已安裝的擴充功能。由於部分擴充功能 API 尚未實作，並非所有擴充功能皆可執行，例如 `chrome.proxy`、`webRequest.onAuthRequired`，以及開發人員工具或 iframe 內擴充功能頁面所使用的 `tabs` / `windows` / `downloads` API。
 
 ## 遊戲與瀏覽體驗
 
 - **適應視窗**：點擊分頁列中的此按鈕可將遊戲畫面縮放至填滿目前分頁（同時適用於 DMM 遊戲頁面與 KC3 遊戲頁面）；在**設定 → Damecon → 艦これ → 影格率**中最高可將遊戲設為 240 FPS 執行。
-- **網址列**：點擊目前選取的分頁，或按 `Cmd/Ctrl+L` 即可輸入網址。
-- **常用快速鍵**：使用 `Cmd+[` / `Cmd+]`（Windows 為 `Alt+←` / `Alt+→`）或滑鼠側鍵返回上一頁／前往下一頁；按 `Cmd/Ctrl+Shift+T` 重新開啟已關閉的分頁；按 `Cmd/Ctrl+F` 在頁面中尋找。
+- **網址列**：點擊目前選取的分頁，或按 `Cmd/Ctrl+L`、`Alt+D` 即可輸入網址。
+- **常用快速鍵**：使用 `Cmd+[` / `Cmd+]`（Windows 與 Linux 為 `Alt+←` / `Alt+→`）或滑鼠側鍵返回上一頁／前往下一頁；按 `Cmd/Ctrl+Shift+T` 重新開啟已關閉的分頁；按 `Cmd/Ctrl+1–9` 切換分頁；按 `Cmd/Ctrl+F` 在頁面中尋找。
 - **網站權限**：網站請求使用相機、位置或通知等權限前，會先跳出視窗徵詢你的允許。
 - **介面語言**：支援英文、簡體中文、繁體中文與日文，預設跟隨系統語言，可於**設定 → Damecon → 視窗 → 語言**中隨時變更。
 

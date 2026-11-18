@@ -2,26 +2,31 @@
 
 English · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md) · [日本語](README.ja.md)
 
-A tabbed browser for playing Kantai Collection, with KC3Kai built in, a built-in KCCacheProxy and HTTP/SOCKS5 proxy support.
+A tabbed browser built for playing Kantai Collection, with KC3Kai and KCCacheProxy built in plus HTTP/SOCKS5 proxy support.
 
 ![The game open with KC3Kai in the developer tools panel](./screenshots/ingame.jpg)
 
-A macOS-focused fork of [planetarian/damecon-browser](https://github.com/planetarian/damecon-browser), built on [electron-browser-shell](https://github.com/samuelmaddock/electron-browser-shell) and Electron 44. Releases ship builds for Apple Silicon and Intel Macs and Windows zips (x64, arm64); the Windows builds get less testing.
+A macOS-focused fork of [planetarian/damecon-browser](https://github.com/planetarian/damecon-browser), built on [electron-browser-shell](https://github.com/samuelmaddock/electron-browser-shell) and Electron 44. Releases ship builds for Apple Silicon and Intel Macs as well as Windows zips (`x64`, `arm64`); the Windows builds receive less testing.
 
-> Damecon is made for playing KanColle, not for general browsing. It lacks many of the security features of major browsers; use it for anything sensitive at your own risk.
+> Damecon is designed for playing KanColle, not for general browsing. It lacks many of the security features of mainstream browsers — do not use it for sensitive accounts or data.
 
 ## Install
 
-Download the latest build from the [Releases page](https://github.com/yecl/damecon-browser/releases/latest). KC3Kai updates itself; new Damecon versions appear there.
+Download the latest release from the [Releases page](https://github.com/yecl/damecon-browser/releases/latest) (KC3Kai updates itself inside the app, and new Damecon versions are published there):
 
-- **macOS** (13 Ventura or later): open the `arm64` (Apple Silicon) or `x64` (Intel) `.dmg` and drag Damecon to Applications. The app is signed ad-hoc but not notarized: open it once, then click **Open Anyway** in System Settings → Privacy & Security.
-- **Windows**: extract the zip into its own folder and run `damecon-browser.exe`.
+- **macOS** (13 Ventura or later):
+  1. Download and open the `.dmg` for your Mac (`arm64` for Apple Silicon, `x64` for Intel).
+  2. Drag Damecon into **Applications**.
+  3. The app is signed ad-hoc and not notarized: after macOS blocks the first launch, open **System Settings → Privacy & Security** and click **Open Anyway**.
+- **Windows**:
+  1. Extract the `.zip` archive into its own folder.
+  2. Run `damecon-browser.exe`.
 
-On first launch Damecon downloads KC3Kai and opens its start page. The Damecon button at the right of the tab bar opens the settings.
+On first launch, Damecon downloads KC3Kai and opens its start page. Click the Damecon icon at the right end of the tab bar to open **Settings**.
 
 ### Portable use
 
-Settings → Damecon → Data → **Next to the app** keeps everything in a `damecon-data` folder beside the app, shared by the macOS and Windows builds:
+In **Settings → Damecon → Data**, selecting **Next to the app** stores all data in a `damecon-data` folder beside the app, shared between the macOS and Windows builds:
 
 ```
 Damecon/
@@ -30,11 +35,15 @@ Damecon/
   damecon-data/
 ```
 
-Settings, KC3Kai data, the KCCP cache and mods travel with the folder; switching to the other build requires signing in to DMM again. On macOS, the quarantine flag may need to be cleared first with: `xattr -dr com.apple.quarantine damecon-browser.app`.
+Settings, KC3Kai data, the KCCP cache and mods all travel with the folder. Because DMM logins are encrypted per computer, you will need to sign in again when switching machines or builds. On macOS, if the app cannot see the folder next to it, clear the quarantine attribute first:
+
+```bash
+xattr -dr com.apple.quarantine damecon-browser.app
+```
 
 ### From source
 
-Requires Node.js 22.12 or later.
+Requires Node.js 22.12 or later:
 
 ```bash
 git clone https://github.com/yecl/damecon-browser
@@ -45,40 +54,45 @@ yarn start
 
 ## KC3Kai
 
-The KC3Kai settings page picks the update channel: `release` (recommended), `master` or `develop`, or `custom` for a KC3 folder you manage yourself. Each channel keeps its own copy and data, so switching doesn't re-download; delete its `kc3kai-*` folder under `extensions` to remove one.
+Under **Settings → KC3Kai**, pick an update channel:
+
+- **Release** (recommended, stable), **Master** or **Develop**.
+- **Custom 1** / **Custom 2**: point to a local KC3 folder you manage yourself.
+
+Each channel keeps its own copy and data, so switching channels does not re-download. To remove a channel, delete its `kc3kai-*` folder inside `extensions`.
 
 ## Proxy and KCCacheProxy
 
-The **Proxy** page shows the route each kind of traffic takes.
+The route map at the top of **Settings → Proxy** shows how each kind of traffic is routed:
 
-- **Proxy**: an HTTP or SOCKS5 proxy carries everything: websites, logins, KC3 updates, the web store and the built-in KCCP's downloads. `chrome.proxy` extensions such as ZeroOmega aren't supported.
-- **[KCCacheProxy](https://github.com/Tibowl/KCCacheProxy)** keeps game assets on disk and applies asset mods. It can take the game servers (`*.kancolle-server.com`) only, in front of the proxy. Damecon trusts its certificate for those servers only, so nothing goes into the system keychain.
-  - **Built-in**: Damecon runs KCCP itself; its cache, mods and config live in `userdata/kccp`.
-  - **External**: a KCCP you run yourself (its HTTPS/MITM port). It reaches the game servers on its own network.
+- **Proxy**: when **Use a proxy** is enabled, all traffic — websites, logins, KC3 updates, the Chrome Web Store and the built-in KCCP's downloads — goes through your HTTP or SOCKS5 proxy. Extensions based on `chrome.proxy` (such as ZeroOmega) are not supported.
+- **[KCCacheProxy](https://github.com/Tibowl/KCCacheProxy) (KCCP)**: caches game assets on disk for faster loading and applies asset mods. Only game servers (`*.kancolle-server.com`) go through KCCP, in front of the proxy. Damecon trusts KCCP's certificate for those servers only and never touches the system keychain.
+  - **Built-in**: Damecon runs KCCP itself; its cache, mods and `config.json` live in `userdata/kccp`.
+  - **External**: connect to a KCCP instance you run yourself (enter its HTTPS/MITM port). It reaches the game servers on its own network rather than through Damecon's proxy.
 
-The **KCCP** page shows status, stats and a live log, and has cache tools (preload, import a dump, verify). KCCP only caches what passes through it; turn on **Always ask KCCP for game assets** or clear the browser cache to fill it.
+The **KCCP** page shows running status, stats and a live log, plus cache tools (**Preload assets**, **Import cache dump**, **Verify cache**). By default KCCP caches only assets loaded during play; turn on **Always ask KCCP for game assets** or run **Clear browser cache** (**Settings → Damecon → Data → Maintenance**) to fill it.
 
 ### Asset mods
 
-With the built-in KCCP, on the KCCP page's **Mods** tab:
+With the built-in KCCP, open the **Mods** tab on the KCCP page:
 
-- **KCCP mods**: install from git, add a `.mod.json`, or convert a poi mod. They replace only the matching parts of an image, so they survive game updates.
-- **`.hack` files**: with **Use .hack files** on, put `<name>.hack.<ext>` under the game path in the hack folder, e.g. `kcs2/resources/ship/full/<file>.hack.png`. They replace the whole file.
-- **Ship `config.ini`** (岛风GO format): `kcs/resources/swf/ships/<ship file>.config.ini` in the hack folder sets ship positions and names when the game starts.
+- **KCCP mods**: install from git, add a `.mod.json`, or convert a poi mod. Because they patch only the changed parts of an image, they usually survive game updates.
+- **`.hack` files**: turn on **Use .hack files** and place `<name>.hack.<ext>` under the game path in the hack folder (e.g. `kcs2/resources/ship/full/<file>.hack.png`) to replace whole files.
+- **Ship `config.ini`** (岛风GO format): place `<ship file>.config.ini` in `kcs/resources/swf/ships/` inside the hack folder to adjust ship positions and names when the game starts.
 
-Press **Reload** after adding or removing `.hack` or `config.ini` files.
+Click **Reload** after adding or removing `.hack` or `config.ini` files.
 
 ## Extensions
 
-Unpacked extensions in `extensions` load automatically, Manifest V2 and V3, and Chrome Web Store installs work. Some extension APIs are missing, so not every extension runs; among them `chrome.proxy`, `webRequest.onAuthRequired`, and the `tabs`/`windows`/`downloads` APIs for extension pages inside DevTools or iframes.
+Unpacked extensions placed in `extensions` load automatically (Manifest V2 and V3), and extensions can also be installed from the Chrome Web Store. Enable, disable or remove installed extensions under **Settings → Extensions**. Some extension APIs are not implemented — including `chrome.proxy`, `webRequest.onAuthRequired`, and the `tabs`, `windows` and `downloads` APIs inside DevTools or iframe extension pages — so not every extension will work.
 
 ## Game and browser
 
-- **Fit** (tab bar) zooms the game to fill the tab, on the DMM page and KC3's game pages alike; a frame rate setting runs the game at up to 240 FPS.
-- Click the selected tab, or press Cmd/Ctrl+L, to type an address.
-- Back/forward with Cmd+[ / Cmd+] (Alt+← / Alt+→ on Windows) or the mouse side buttons; Cmd/Ctrl+Shift+T reopens a closed tab; Cmd/Ctrl+F finds in page.
-- Sites ask before using the camera, location, notifications and similar permissions.
-- The interface is in English, Simplified Chinese, Traditional Chinese or Japanese, following the system unless set in Settings → Damecon → Window → Language.
+- **Fit game to window**: click the button with four corner marks just right of the tabs to zoom the game to fill the tab (works on both the DMM page and KC3's game pages); set **Frame rate** under **Settings → Damecon → KanColle** to run at up to 240 FPS.
+- **Address field**: click the selected tab, or press `Cmd/Ctrl+L` or `Alt+D`, to enter a URL.
+- **Shortcuts**: go back and forward with `Cmd+[` / `Cmd+]` (`Alt+←` / `Alt+→` on Windows and Linux) or mouse side buttons; `Cmd/Ctrl+Shift+T` reopens closed tabs; `Cmd/Ctrl+1–9` switches tabs; `Cmd/Ctrl+F` finds in page.
+- **Site permissions**: sites ask (**Block** / **Allow**) before using the camera, location, notifications and similar permissions.
+- **Language**: available in English, Simplified Chinese, Traditional Chinese and Japanese — **System** by default, or set under **Settings → Damecon → Window → Language**.
 
 ## License
 
