@@ -312,14 +312,27 @@ const reachable = (host, port) =>
     socket.once('error', () => done(false))
   })
 
-// Harmless for any page, and Chrome doesn't ask for them either
+// Granted without asking: harmless for any page, and Chrome doesn't ask for them either
 const SILENT_PERMISSIONS = [
   'fullscreen',
   'pointerLock',
   'keyboardLock',
   'clipboard-sanitized-write',
   'mediaKeySystem',
+  // a frame asking to use its own cookies (Google sign-in on DMM's login page); third-party cookies
+  // are allowed here anyway, so Chrome grants these without asking too
+  'storage-access',
+  'top-level-storage-access',
+  // granted by default in Chrome too
+  'background-sync',
+  'background-fetch',
+  'sensors',
+  'payment-handler',
+  'screen-wake-lock',
+  'persistent-storage',
 ]
+// What Chrome refuses an ordinary page without asking (installed or isolated web apps only)
+const REFUSED_PERMISSIONS = ['system-wake-lock', 'periodic-background-sync', 'automatic-fullscreen']
 // Extensions (KC3, the webui) declare their permissions in their manifest
 const isTrustedPermission = (origin, permission) =>
   origin.startsWith('chrome-extension://') || SILENT_PERMISSIONS.includes(permission)
@@ -677,6 +690,7 @@ class Browser extends EventEmitter {
       if (!origin) return false
       if (permission === 'fullscreen' && this.isSizeLocked()) return false
       if (isTrustedPermission(origin, permission)) return true
+      if (REFUSED_PERMISSIONS.includes(permission)) return false
       return this.permissionDecisions.get(`${origin} ${permission}`) === true
     })
     ipcMain.on('mouse-navigate', (event, offset) => {
@@ -1742,6 +1756,7 @@ class Browser extends EventEmitter {
     // a page going fullscreen would resize the game while the window size is locked
     if (permission === 'fullscreen' && this.isSizeLocked()) return false
     if (isTrustedPermission(origin, permission)) return true
+    if (REFUSED_PERMISSIONS.includes(permission)) return false
     const key = `${origin} ${permission}`
     if (!this.permissionDecisions.has(key)) {
       const parent = BrowserWindow.getFocusedWindow()
