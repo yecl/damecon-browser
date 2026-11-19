@@ -1,3 +1,5 @@
+const SETTINGS_PAGE_REQUEST = 'damecon-settings-page'
+
 class Settings {
   configPages = [
     {
@@ -576,6 +578,16 @@ class Settings {
     this.config.app.language.subscribe((language) => i18n.setLanguage(language))
     console.log('done prepping config', this.config)
     this.settingsInitialized(true)
+    // another page (the error page) can ask for one of these pages, through localStorage since the
+    // settings tab may not be open yet
+    const showRequestedPage = () => {
+      const page = localStorage.getItem(SETTINGS_PAGE_REQUEST)
+      if (page === null) return
+      localStorage.removeItem(SETTINGS_PAGE_REQUEST)
+      this.selectedConfigPage(Number(page))
+    }
+    showRequestedPage()
+    addEventListener('storage', (ev) => ev.key === SETTINGS_PAGE_REQUEST && showRequestedPage())
 
     const downloads = await chrome.downloads.search({})
     downloads.forEach((d) => this.downloads.push(this.prepDownload(d)))

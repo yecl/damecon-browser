@@ -34,8 +34,36 @@
   user-select: text;
 }
 
-#reload {
+.buttons {
+  display: flex;
+  gap: 8px;
   margin-top: 8px;
+}
+
+#open-settings {
+  height: 36px;
+  padding: 0 16px;
+  border: none;
+  border-radius: var(--radius);
+  background: none;
+  box-shadow: inset 0 0 0 1px var(--hairline);
+  color: var(--content-text-color);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+#open-settings:hover {
+  background: var(--content-hover-color);
+}
+
+#open-settings:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--ring) 60%, transparent);
+  outline-offset: 2px;
+}
+
+#reload {
   height: 36px;
   padding: 0 16px;
   border: none;

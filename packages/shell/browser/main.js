@@ -13,6 +13,7 @@ import {
 } from 'electron'
 import { EventEmitter } from 'events'
 import http from 'http'
+import net from 'net'
 import https from 'https'
 import { HttpsProxyAgent } from 'https-proxy-agent'
 import { SocksProxyAgent } from 'socks-proxy-agent'
@@ -297,6 +298,19 @@ let errorUrl
 let authUrl
 let settingsUrl
 let confirmCloseUrls = []
+
+// whether host:port takes a TCP connection
+const reachable = (host, port) =>
+  new Promise((resolve) => {
+    const socket = net.connect({ host, port: Number(port), timeout: 3000 })
+    const done = (ok) => {
+      socket.destroy()
+      resolve(ok)
+    }
+    socket.once('connect', () => done(true))
+    socket.once('timeout', () => done(false))
+    socket.once('error', () => done(false))
+  })
 
 // Harmless for any page, and Chrome doesn't ask for them either
 const SILENT_PERMISSIONS = [
@@ -922,6 +936,21 @@ class Browser extends EventEmitter {
         case 'kccp':
           result = await builtinKccp.action(data.action, data)
           break
+        case 'reload-failed-page': {
+          const wc = ev.sender
+          const errorPage = wc.navigationHistory.getActiveIndex()
+          wc.once('did-navigate', () => wc.navigationHistory.removeEntryAtIndex(errorPage))
+          wc.loadURL(data.url)
+          break
+        }
+        case 'open-settings': {
+          // from the error page: the settings page reads which page to show itself
+          const win = this.windows.find((w) =>
+            w.tabs.tabList.some((t) => t.webContents === ev.sender),
+          )
+          if (win) this.sendToWindow(win.id, 'webui-open-settings')
+          break
+        }
         case 'auth-response':
           this.loginPrompts.get(data.id)?.(data.cancel ? null : data)
           break
@@ -1734,18 +1763,53 @@ class Browser extends EventEmitter {
   }
 
   // A page that fails to load or whose renderer crashes gets an error page with Reload instead of
-  // staying blank; a hung one asks whether to wait or reload, as Chrome does
+  // staying blank; a hung one asks whether to wait or reload, as Chrome does. So does the game's own
+  // frame (in DMM's or KC3's page): Electron leaves a failed frame blank, and the page is no use
+  // without it. Other frames are left alone, as Chrome does.
+  //
+  // DMM's game page can also come from the cache while the proxy is down, and then stays blank as
+  // its scripts fail. Watching requests for that (session.webRequest) would take webRequest away
+  // from extensions, KC3's DMM customisation among them, so the proxy is checked instead.
   handlePageFailures(tab, window) {
     const wc = tab.webContents
-    const showError = (kind, url, detail) =>
-      wc.loadURL(`${errorUrl}?${new URLSearchParams({ kind, url, detail })}`)
+    // in place of the failed page, so Back goes to the one before it rather than to a blank page
+    // that would only fail again
+    const showError = (params) => {
+      const failed = wc.navigationHistory.getActiveIndex()
+      wc.once('did-navigate', () => wc.navigationHistory.removeEntryAtIndex(failed))
+      wc.loadURL(`${errorUrl}?${new URLSearchParams(params)}`)
+    }
     wc.on('did-fail-load', (event, code, description, url, isMainFrame) => {
       // -3 (ERR_ABORTED) is a navigation stopped or replaced by another, not a failure
-      if (isMainFrame && code !== -3) showError('load', url, `${description} (${code})`)
+      if (code === -3) return
+      const game = !isMainFrame && KC_GAME_HOST.test(URL.parse(url)?.hostname ?? '')
+      if (!isMainFrame && !game) return
+      // Reload goes back to the page, not to the frame
+      showError({
+        kind: 'load',
+        url: isMainFrame ? url : wc.getURL(),
+        detail: `${description} (${code})`,
+        ...this.failedProxy(code, url),
+      })
+    })
+    wc.on('did-finish-load', async () => {
+      const url = wc.getURL()
+      if (!DMMPageUrl || !url.startsWith(DMMPageUrl)) return
+      const proxy = this.gameProxy()
+      if (!proxy || (await reachable(proxy.host, proxy.port))) return
+      if (wc.isDestroyed() || wc.getURL() !== url) return
+      showError({
+        kind: 'load',
+        url,
+        detail: '',
+        proxy: proxy.proxy,
+        address: `${proxy.host}:${proxy.port}`,
+      })
     })
     wc.on('render-process-gone', (event, { reason }) => {
       if (tab.reloadingHungPage) tab.reloadingHungPage = false
-      else if (reason !== 'clean-exit') showError('crash', wc.getURL(), reason)
+      else if (reason !== 'clean-exit')
+        showError({ kind: 'crash', url: wc.getURL(), detail: reason })
     })
     wc.on('unresponsive', async () => {
       const recovered = new AbortController()
@@ -1767,6 +1831,32 @@ class Browser extends EventEmitter {
       wc.forcefullyCrashRenderer()
       wc.reload()
     })
+  }
+
+  // the proxy the game servers are reached through, if any: KCCP while it is on, otherwise the one on
+  // the Proxy page
+  gameProxy() {
+    const proxy = configStore.get('proxy')
+    if (proxy.kccp.enable) return { proxy: 'kccp', host: proxy.kccp.host, port: proxy.kccp.port }
+    if (proxy.enable) return { proxy: 'proxy', host: proxy.client.host, port: proxy.client.port }
+  }
+
+  // For an error connecting to a proxy, the proxy that was in the way: KCCP for the game servers
+  // while it is on, otherwise the one on the Proxy page
+  failedProxy(code, url) {
+    const PROXY_ERRORS = [
+      -111, // ERR_TUNNEL_CONNECTION_FAILED
+      -120, // ERR_SOCKS_CONNECTION_FAILED
+      -122, // ERR_SOCKS_CONNECTION_HOST_UNREACHABLE
+      -130, // ERR_PROXY_CONNECTION_FAILED
+    ]
+    if (!PROXY_ERRORS.includes(code)) return {}
+    const proxy = configStore.get('proxy')
+    if (proxy.kccp.enable && KC_GAME_HOST.test(URL.parse(url)?.hostname ?? ''))
+      return { proxy: 'kccp', address: `${proxy.kccp.host}:${proxy.kccp.port}` }
+    if (proxy.enable)
+      return { proxy: 'proxy', address: `${proxy.client.host}:${proxy.client.port}` }
+    return {}
   }
 
   loginPrompts = new Map()

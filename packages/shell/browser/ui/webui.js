@@ -354,6 +354,9 @@ class WebUI {
       case 'webui-display-mode':
         await this.sendTopbarSize()
         break
+      case 'webui-open-settings':
+        this.openSettings()
+        break
       case 'webui-focus-addressbar':
         this.startEditingAddress(this.activeTab())
         break
