@@ -1617,12 +1617,25 @@ class Browser extends EventEmitter {
   // fullscreen is refused in askPermission.
   applyWindowSizeLock(win) {
     const locked = this.isSizeLocked()
-    // the size limits go first: while minimum = maximum, a window can't be made resizable again
-    const [width, height] = locked ? win.getSize() : [0, 0]
-    win.setMinimumSize(width, height)
-    win.setMaximumSize(width, height)
-    win.setResizable(!locked)
-    win.setMaximizable(!locked)
+    const limit = () => {
+      const [width, height] = locked ? win.getSize() : [0, 0]
+      win.setMinimumSize(width, height)
+      win.setMaximumSize(width, height)
+    }
+    // The order differs each way. On Windows setResizable snapshots the size constraints when
+    // locking and restores the snapshot when unlocking, so it goes before the limits when locking:
+    // after them, the snapshot is of the locked limits and unlocking puts them back (a resize cursor,
+    // but WM_GETMINMAXINFO clamps every drag to the old size). On macOS a window whose minimum and
+    // maximum size are equal can't be made resizable, so the limits go first when unlocking.
+    if (locked) {
+      win.setResizable(false)
+      win.setMaximizable(false)
+      limit()
+    } else {
+      limit()
+      win.setResizable(true)
+      win.setMaximizable(true)
+    }
     win.setFullScreenable(!locked)
   }
 
